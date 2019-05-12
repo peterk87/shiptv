@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+  <style>
+    body {
+      margin: 0.625em auto;
+      /*max-width: 60em;*/
+    }
+    #tree-plot {
+      width: 100%;
+      height: 40em;
+    }
+
+    .phylocanvas-context-menu,
+    .phylocanvas-context-menu ul {
+      list-style: outside none none;
+      margin: 0;
+    }
+
+    .phylocanvas-context-menu {
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+      letter-spacing: 0px;
+      list-style: outside none none;
+      min-width: 124px;
+      padding: 8px 0;
+    }
+
+    .phylocanvas-context-menu ul {
+      padding: 0;
+    }
+
+    .phylocanvas-context-menu ul + ul {
+      border-top: 1px solid #e0e0e0;
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+
+    .phylocanvas-context-menu li {
+      padding: 0 16px;
+      outline-color: #bdbdbd;
+      height: 40px;
+      line-height: 40px;
+      text-decoration: none;
+      background-color: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+
+    .phylocanvas-context-menu li:hover,
+    .phylocanvas-context-menu li:focus {
+      background-color: #eee;
+    }
+
+    .phylocanvas-context-menu a {
+      display: block;
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    .phylocanvas-context-menu li,
+    .phylocanvas-context-menu a {
+      color: rgba(0, 0, 0, 0.87);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .phylocanvas-history {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      box-sizing: border-box;
+      width: 240px;
+      background: #fff;
+      transform: translateX(-240px);
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition-duration: .2s;
+      transition-timing-function: cubic-bezier(.4,0,.2,1);
+      transition-property: transform;
+      border: 1px solid #e7e7e7;
+      border-left: none;
+    }
+
+    .phylocanvas-history--open {
+      transform: translateX(0);
+      box-shadow: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
+    }
+
+    .phylocanvas-history-button {
+      border: none;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      margin: auto;
+      min-width: 56px;
+      width: 56px;
+      padding: 0;
+      overflow: hidden;
+      background: #3c7383;
+      color: #fff;
+      box-shadow: 0 1px 1.5px 0 rgba(0,0,0,.12),0 1px 1px 0 rgba(0,0,0,.24);
+      position: relative;
+      line-height: normal;
+      position: absolute;
+      bottom: 16px;
+      right: -57px;
+      z-index: 1;
+      outline: none;
+      cursor: pointer;
+      border-radius: 0 0 2px 2px;
+      font-size: 13px;
+      font-family: Helvetica, Arial, sans-serif;
+      transform: rotate(-90deg);
+      transform-origin: top left;
+    }
+
+    .phylocanvas-history-snapshots {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: scroll;
+    }
+
+    .phylocanvas-history-snapshot {
+      list-style: none;
+      border-bottom: 1px solid #e7e7e7;
+      cursor: pointer;
+      box-sizing: border-box;
+      display: block;
+      position: relative;
+      height: 128px;
+    }
+
+    .phylocanvas-history-snapshot::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 4px;
+      background-color: transparent;
+      transition: background-color .2s cubic-bezier(.4,0,.2,1);
+    }
+
+    .phylocanvas-history-snapshot:hover::after,
+    .phylocanvas-history-snapshot--selected::after {
+      background-color: #3c7383;
+    }
+
+    .phylocanvas-history-snapshot > img {
+      width: 100%;
+      height: 128px;
+      object-fit: contain;
+    }
+  </style>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/phylocanvas@2.8.1/dist/phylocanvas.js"></script>
+  <script src="https://unpkg.com/phylocanvas@2.8.1/polyfill.js"></script>
+  <script src="https://unpkg.com/chroma-js@2.0.2/chroma.js"></script>
+  <script src="https://unpkg.com/lodash@4.17.11/lodash.min.js"></script>
+  <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css">
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-theme-balham.css">
+</head>
+<body>
+  <nav>
+    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+      <a class="nav-item nav-link active"
+         id="tree-tab-link"
+         href="#tree-tab"
+         data-toggle="tab"
+         role="tab"
+         aria-controls="tree-tab"
+         aria-selected="true">
+        Tree <span class="sr-only">(current)</span>
+      </a>
+      <a class="nav-item nav-link"
+           id="table-tab-link"
+           href="#table-tab"
+           data-toggle="tab"
+           role="tab"
+           aria-controls="table-tab"
+           aria-selected="true">
+         Table
+       </a>
+    </div>
+  </nav>
+  <div class="tab-content">
+    <div class="tab-pane active" role="tabpanel" id="tree-tab" aria-labelledby="tree-tab-link">
+      <div class="container-fluid">
+        <div class="row">
+          <h1>Phylogenetic tree - interactive visualization</h1>
+        </div>
+        <div class="row">
+          <div class="col-2">
+            <div class="card">
+              <div class="card-header">Visualization Controls</div>
+              <div class="card-body">
+                <p class="card-text small">Right-click on the phylogenetic tree visualization to open context menu for more options to interact with tree.</p>
+                <!-- Find leaves in tree -->
+                <div class="form-group">
+                  <label for="findLeavesInput">Find Leaves</label>
+                  <input type="text"
+                         id="findLeavesInput"
+                         class="form-control"
+                         placeholder="Enter leaf name(s)">
+                </div>
+                <!-- branchScaleInput: scale branch length -->
+                <div class="form-group">
+                  <label for="branchScaleInput">Tree Branch Scale</label>
+                  <input type="range"
+                         id="branchScaleInput"
+                         class="custom-range"
+                         min="0"
+                         max="1.0"
+                         value="0.5"
+                         step="0.05">
+                </div>
+                <!-- metadata block width -->
+                <div class="form-group">
+                  <label for="metadataBlockLengthInput">Metadata Block Width</label>
+                  <input type="number"
+                         id="metadataBlockLengthInput"
+                         class="form-control"
+                         min="0"
+                         value="20"
+                         step="1">
+                </div>
+                <!-- headerAngleRotation -->
+                <div class="form-group">
+                  <label for="headerAngleRotationInput">Metadata Header Angle</label>
+                  <input type="range"
+                         id="headerAngleRotationInput"
+                         class="custom-range"
+                         min="0"
+                         max="90"
+                         value="0"
+                         step="1">
+                </div>
+                <div class="custom-control custom-switch">
+                  <input type="checkbox"
+                         id="showMetadataLabelsInput"
+                         class="custom-control-input"
+                         checked
+                         value="true">
+                  <label class="custom-control-label" for="showMetadataLabelsInput">Show Metadata Labels</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-10">
+            <div id="tree-plot" style="overflow: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane" id="table-tab" role="tabpanel" aria-labelledby="table-tab-link">
+      <div class="container-fluid">
+        <div class="ag-theme-balham" id="metadata-grid" style="height: 600px; width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript">
+    var newick_string = "{{ newick_string }}";
+  </script>
+  <script type="text/javascript">
+    var genomeMetadata = {{ metadata_json_string }};
+  </script>
+  <script>
+    (function webpackUniversalModuleDefinition(root, factory) {
+      if(typeof exports === 'object' && typeof module === 'object')
+        module.exports = factory(require("phylocanvas"));
+      else if(typeof define === 'function' && define.amd)
+        define(["phylocanvas"], factory);
+      else if(typeof exports === 'object')
+        exports["metadataPlugin"] = factory(require("phylocanvas"));
+      else
+        root["metadataPlugin"] = factory(root["phylocanvas"]);
+    })(this, function(__WEBPACK_EXTERNAL_MODULE_1__) {
+    return /******/ (function(modules) { // webpackBootstrap
+    /******/  // The module cache
+    /******/  var installedModules = {};
+
+    /******/  // The require function
+    /******/  function __webpack_require__(moduleId) {
+
+    /******/    // Check if module is in cache
+    /******/    if(installedModules[moduleId])
+    /******/      return installedModules[moduleId].exports;
+
+    /******/    // Create a new module (and put it into the cache)
+    /******/    var module = installedModules[moduleId] = {
+    /******/      exports: {},
+    /******/      id: moduleId,
+    /******/      loaded: false
+    /******/    };
+
+    /******/    // Execute the module function
+    /******/    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+    /******/    // Flag the module as loaded
+    /******/    module.loaded = true;
+
+    /******/    // Return the exports of the module
+    /******/    return module.exports;
+    /******/  }
+
+
+    /******/  // expose the modules object (__webpack_modules__)
+    /******/  __webpack_require__.m = modules;
+
+    /******/  // expose the module cache
+    /******/  __webpack_require__.c = installedModules;
+
+    /******/  // __webpack_public_path__
+    /******/  __webpack_require__.p = "";
+
+    /******/  // Load entry module and return exports
+    /******/  return __webpack_require__(0);
+    /******/ })
+    /************************************************************************/
+    /******/ ([
+    /* 0 */
+    /***/ (function(module, exports, __webpack_require__) {
+
+      'use strict';
+
+      Object.defineProperty(exports, "__esModule", {
+        value: true
+      });
+      exports.DEFAULT_BRANCH_MENU_ITEMS = exports.DEFAULT_MENU_ITEMS = undefined;
+
+      var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+      var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+      exports.default = metadataPlugin;
+
+      var _phylocanvas = Phylocanvas;//__webpack_require__(1);
+
+      var _phylocanvas2 = _interopRequireDefault(_phylocanvas);
+
+      function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+      function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+      function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+      function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+      function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } } /* eslint no-param-reassign: ["error", { "props": false }] */
+
+      var _utils$events = _phylocanvas.utils.events,
+          createHandler = _utils$events.createHandler,
+          preventDefault = _utils$events.preventDefault;
+      var createBlobUrl = _phylocanvas.utils.dom.createBlobUrl;
+      var constants = _phylocanvas.utils.constants;
+      var Angles = constants.Angles;
+      // const { getPixelRatio } = utils.canvas;
+
+      var DEFAULTS = {
+        _headingDrawn: false,
+        _maxLabelWidth: {},
+        _blockCoords: {}, // object to store metadata block coordinates
+        active: true,
+        showHeaders: true,
+        showLabels: true,
+        blockLength: 32,
+        blockSize: null,
+        padding: 8,
+        columns: [],
+        propertyName: 'data',
+        underlineHeaders: true,
+        headerAngle: 90,
+        fillStyle: 'black',
+        strokeStyle: 'black',
+        lineWidth: 1,
+        font: null,
+        showTooltip: true, // whether or not to show metadata tooltip
+        tooltipFunc: null // optional function for innerHTML to set for tooltip
+      };
+
+      var INVALID_HORIZONTAL_POSITION = 'Invalid horizontal position specified' + 'Supported values are `left`, `centre`, or `right`';
+      var INVALID_VERTICAL_POSITION = 'Invalid vertical position specified' + 'Supported values are `top`, `middle`, or `bottom`';
+
+      var LOG10 = Math.log(10);
+
+      function drawScalebar() {
+        var scalebar = this.scalebar,
+            zoom = this.zoom,
+            branchScalar = this.branchScalar;
+        var position = scalebar.position;
+
+        var cxt = this.canvas;
+        var canvas = cxt.canvas;
+        var pixelRatio = getPixelRatio(cxt);
+        var width = pixelRatio * scalebar.width;
+        var height = pixelRatio * scalebar.height;
+        var lineWidth = pixelRatio * scalebar.lineWidth;
+        var fontSize = pixelRatio * scalebar.fontSize;
+
+        cxt.save();
+
+        var x = 0;
+        if (typeof position.left !== 'undefined') {
+          x = scalebar.lineWidth + position.left;
+        } else if (typeof position.centre !== 'undefined') {
+          x = canvas.width / 2 - width / 2 + position.centre;
+        } else if (typeof position.right !== 'undefined') {
+          x = canvas.width - width - scalebar.lineWidth - position.right;
+        } else {
+          this.loadError(INVALID_HORIZONTAL_POSITION);
+        }
+        var y = 0;
+        if (typeof position.top !== 'undefined') {
+          y = position.top;
+        } else if (typeof position.middle !== 'undefined') {
+          y = canvas.height / 2 - height + position.middle;
+        } else if (typeof position.bottom !== 'undefined') {
+          y = canvas.height - height - position.bottom;
+        } else {
+          this.loadError(INVALID_VERTICAL_POSITION);
+        }
+        cxt.clearRect(x, y, width, height);
+
+        cxt.font = fontSize + 'px ' + scalebar.fontFamily;
+        cxt.fillStyle = scalebar.fillStyle;
+        cxt.strokeStyle = scalebar.strokeStyle;
+        cxt.lineWidth = lineWidth;
+        cxt.textBaseline = scalebar.textBaseline;
+        cxt.textAlign = scalebar.textAlign;
+
+        cxt.beginPath();
+        cxt.moveTo(x, y);
+        cxt.lineTo(x + width, y);
+        cxt.stroke();
+        cxt.moveTo(x, y);
+        cxt.lineTo(x, y + height);
+        cxt.stroke();
+        cxt.moveTo(x + width, y);
+        cxt.lineTo(x + width, y + height);
+        cxt.stroke();
+        cxt.closePath();
+
+        var scale = width / branchScalar / zoom;
+        var minDigitis = parseInt(Math.abs(Math.log(scale) / LOG10), 10);
+        var label = scale.toFixed(minDigitis + scalebar.digits);
+        cxt.fillText(label, x + width / 2, y + height);
+
+        cxt.restore();
+      }
+
+      function isCircularTree(tree) {
+        return tree.treeType === 'circular' || tree.treeType === 'radial';
+      }
+
+      function getFontString(tree) {
+        if (tree.metadata.font) {
+          return tree.metadata.font;
+        }
+        return Math.min(tree.textSize, tree.metadata.blockLength) + 'pt ' + tree.font;
+      }
+
+      function getMetadataColumnNames(tree) {
+        var _tree$metadata = tree.metadata,
+            columns = _tree$metadata.columns,
+            propertyName = _tree$metadata.propertyName;
+        // If no columns specified, then draw all columns
+
+        return columns.length > 0 ? columns : Object.keys(tree.leaves[0][propertyName]);
+      }
+
+      function hasMetadataHeadings(tree) {
+        if (!tree.metadata.showHeaders) {
+          return false;
+        }
+        var treeType = tree.treeType,
+            alignLabels = tree.alignLabels;
+
+        return treeType === 'diagonal' || alignLabels && treeType === 'rectangular' || treeType === 'hierarchical';
+      }
+
+      function getMetadataLength(tree) {
+        var _tree$metadata2 = tree.metadata,
+            showLabels = _tree$metadata2.showLabels,
+            blockLength = _tree$metadata2.blockLength,
+            padding = _tree$metadata2.padding,
+            _maxLabelWidth = _tree$metadata2._maxLabelWidth;
+
+        var cols = getMetadataColumnNames(tree);
+        return (showLabels ? cols.reduce(function (pre, cur) {
+          return _maxLabelWidth[cur];
+        }, 0) : 0) + cols.length * (blockLength + padding);
+      }
+
+      function getMetadataMaxBlockSize(tree) {
+        if (tree.metadata._maxBlockSize) {
+          return tree.metadata._maxBlockSize;
+        }
+
+        // the max block size of circular trees is the max angle in pixels
+        if (isCircularTree(tree)) {
+          var maxHypot = 0;
+          var _iteratorNormalCompletion = true;
+          var _didIteratorError = false;
+          var _iteratorError = undefined;
+
+          try {
+            for (var _iterator = tree.leaves[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+              var lf = _step.value;
+
+              var tx = lf.getLabelStartX();
+              if (tree.showLabels || tree.hoverLabel && lf.highlighted) {
+                tx += tree.maxLabelLength[tree.treeType];
+              }
+              var offset = tree.alignLabels ? tree.labelAlign.getLabelOffset(lf) : 0;
+              var hypot = Math.hypot(lf.centerx - lf.startx, lf.centery - lf.starty) + tx + offset;
+              if (hypot > maxHypot) maxHypot = hypot;
+            }
+          } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion && _iterator.return) {
+                _iterator.return();
+              }
+            } finally {
+              if (_didIteratorError) {
+                throw _iteratorError;
+              }
+            }
+          }
+
+          tree.metadata._maxBlockSize = Angles.FULL * maxHypot / tree.leaves.length;
+          return tree.metadata._maxBlockSize;
+        }
+
+        // the max block size for non-circular trees is equal to the tree step
+        return tree.step;
+      }
+
+      function drawMetadataHeading(branch, startX, startY) {
+        var ctx = branch.tree.canvas;
+        var treeType = branch.tree.treeType;
+        var _branch$tree$metadata = branch.tree.metadata,
+            _maxLabelWidth = _branch$tree$metadata._maxLabelWidth,
+            _maxHeaderWidth = _branch$tree$metadata._maxHeaderWidth,
+            _maxHeaderHeight = _branch$tree$metadata._maxHeaderHeight,
+            blockLength = _branch$tree$metadata.blockLength,
+            padding = _branch$tree$metadata.padding,
+            headerAngle = _branch$tree$metadata.headerAngle,
+            showLabels = _branch$tree$metadata.showLabels,
+            fillStyle = _branch$tree$metadata.fillStyle,
+            strokeStyle = _branch$tree$metadata.strokeStyle,
+            underlineHeaders = _branch$tree$metadata.underlineHeaders;
+
+        var metadata = branch.tree.metadata.columns.length > 0 ? branch.tree.metadata.columns : Object.keys(branch.data);
+        var lineWidth = branch.tree.metadata.lineWidth / branch.tree.zoom;
+        // Drawing Column headings
+        ctx.font = getFontString(branch.tree);
+        ctx.fillStyle = fillStyle;
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+
+        var angle = headerAngle / 180 * Math.PI;
+        var y = startY + _maxHeaderHeight / 2 + Math.sin(angle) * _maxHeaderWidth / 2;
+        var sign = treeType === 'hierarchical' ? -1 : 1;
+        var x = startX;
+        var cosAngle = Math.cos(angle);
+        var sinAngle = Math.sin(angle);
+        // start of header text should appear directly over metadata blocks
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'bottom';
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+          for (var _iterator2 = metadata[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var columnName = _step2.value;
+
+            var headerLength = blockLength + (showLabels ? _maxLabelWidth[columnName] : 0);
+            var textX = cosAngle * x + sinAngle * sign * (startY + _maxHeaderHeight);
+            var textY = sinAngle * (x + _maxHeaderHeight) + cosAngle * -sign * startY;
+            ctx.rotate(-angle);
+            ctx.fillText(columnName, textX, textY);
+            ctx.rotate(angle);
+            if (underlineHeaders) {
+              ctx.beginPath();
+              ctx.moveTo(x, -sign * startY);
+              ctx.lineTo(x + headerLength, -sign * startY);
+              ctx.stroke();
+              ctx.closePath();
+            }
+            x += headerLength + padding;
+          }
+        } catch (err) {
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion2 && _iterator2.return) {
+              _iterator2.return();
+            }
+          } finally {
+            if (_didIteratorError2) {
+              throw _iteratorError2;
+            }
+          }
+        }
+      }
+
+      function drawMetadata(branch) {
+        var ctx = branch.tree.canvas;
+        var tree = branch.tree;
+        var _branch$tree$metadata2 = branch.tree.metadata,
+            _maxLabelWidth = _branch$tree$metadata2._maxLabelWidth,
+            blockSize = _branch$tree$metadata2.blockSize,
+            blockLength = _branch$tree$metadata2.blockLength,
+            padding = _branch$tree$metadata2.padding,
+            propertyName = _branch$tree$metadata2.propertyName,
+            fillStyle = _branch$tree$metadata2.fillStyle,
+            columns = _branch$tree$metadata2.columns,
+            showLabels = _branch$tree$metadata2.showLabels;
+
+        // set initial x and y coordinates
+
+        var tx = branch.getLabelStartX();
+        var ty = 0;
+
+        // initialize metadata block coordinates for current branch
+        tree.metadata._blockCoords[branch.id] = [];
+
+        if (tree.showLabels || tree.hoverLabel && branch.highlighted) {
+          tx += tree.maxLabelLength[tree.treeType];
+        }
+
+        // makes sure that the block size is not greater than tree step or max angle
+        var maxSize = getMetadataMaxBlockSize(tree);
+        var size = blockSize !== null ? Math.min(maxSize, blockSize) : maxSize;
+
+        // add padding to both x and y axis
+        if (tree.alignLabels) {
+          tx += tree.labelAlign.getLabelOffset(branch);
+        }
+        tx += padding;
+        ty = ty - size / 2;
+
+        // draw column headers
+        if (!tree.metadata._headingDrawn && hasMetadataHeadings(tree)) {
+          drawMetadataHeading(branch, tx, size / 2 + padding);
+          tree.metadata._headingDrawn = true;
+        }
+
+        var data = this[propertyName];
+        if (Object.keys(data).length > 0) {
+          ctx.beginPath();
+
+          // If no columns specified, then draw all columns
+          var columnNames = columns.length > 0 ? columns : Object.keys(data);
+
+          var i = 1;
+          var stepCorrection = isCircularTree(tree) && tree.alignLabels ? Angles.FULL * blockLength / tree.leaves.length : 0;
+          var font = getFontString(tree);
+          var _iteratorNormalCompletion3 = true;
+          var _didIteratorError3 = false;
+          var _iteratorError3 = undefined;
+
+          try {
+            for (var _iterator3 = columnNames[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+              var columnName = _step3.value;
+
+              if (typeof data[columnName] !== 'undefined' && branch.leafStyle.fillStyle !== 'transparent') {
+                ctx.fillStyle = data[columnName].colour || data[columnName];
+                ctx.fillRect(tx, ty, blockLength, size + i * stepCorrection);
+                // add metadata block coordinate information for each column
+                tree.metadata._blockCoords[branch.id].push({
+                  x: tx + branch.centerx,
+                  y: ty + branch.centery,
+                  w: blockLength,
+                  h: size + i * stepCorrection,
+                  columnName: columnName,
+                  data: data[columnName],
+                  leaf: branch.id
+                });
+                if (showLabels && typeof data[columnName].label === 'string') {
+                  ctx.font = font;
+                  ctx.fillStyle = fillStyle;
+                  ctx.textAlign = 'left';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(data[columnName].label, tx + blockLength + padding / 4, ty + size / 2);
+                }
+              }
+              tx += blockLength + padding;
+              if (showLabels) {
+                tx += _maxLabelWidth[columnName];
+              }
+              i++;
+            }
+          } catch (err) {
+            _didIteratorError3 = true;
+            _iteratorError3 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                _iterator3.return();
+              }
+            } finally {
+              if (_didIteratorError3) {
+                throw _iteratorError3;
+              }
+            }
+          }
+
+          ctx.closePath();
+        }
+      }
+
+      function setMaxLabelWidths(tree) {
+        var ctx = tree.canvas;
+        var _tree$metadata3 = tree.metadata,
+            showLabels = _tree$metadata3.showLabels,
+            propertyName = _tree$metadata3.propertyName,
+            headerAngle = _tree$metadata3.headerAngle;
+
+        var columnNames = getMetadataColumnNames(tree);
+        var angle = headerAngle / 180 * Math.PI;
+
+        ctx.font = getFontString(tree);
+
+        tree.metadata._maxHeaderWidth = 0;
+        // Using W since it is the widest character given the default font style context
+        tree.metadata._maxHeaderHeight = ctx.measureText('W').width;
+        var maxLabelWidth = {};
+        if (showLabels) {
+          var _iteratorNormalCompletion4 = true;
+          var _didIteratorError4 = false;
+          var _iteratorError4 = undefined;
+
+          try {
+            for (var _iterator4 = columnNames[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+              var col = _step4.value;
+
+              var labelWidth = ctx.measureText(col).width;
+              maxLabelWidth[col] = Math.cos(angle) * labelWidth;
+              if (labelWidth > tree.metadata._maxHeaderWidth) {
+                tree.metadata._maxHeaderWidth = labelWidth;
+              }
+            }
+          } catch (err) {
+            _didIteratorError4 = true;
+            _iteratorError4 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                _iterator4.return();
+              }
+            } finally {
+              if (_didIteratorError4) {
+                throw _iteratorError4;
+              }
+            }
+          }
+
+          var _iteratorNormalCompletion5 = true;
+          var _didIteratorError5 = false;
+          var _iteratorError5 = undefined;
+
+          try {
+            for (var _iterator5 = tree.leaves[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+              var leaf = _step5.value;
+
+              var data = leaf[propertyName];
+              var _iteratorNormalCompletion6 = true;
+              var _didIteratorError6 = false;
+              var _iteratorError6 = undefined;
+
+              try {
+                for (var _iterator6 = columnNames[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                  var columnName = _step6.value;
+
+                  if (data[columnName] && typeof data[columnName].label === 'string') {
+                    var textWidth = ctx.measureText(data[columnName].label).width;
+                    if (textWidth > maxLabelWidth[columnName]) {
+                      maxLabelWidth[columnName] = textWidth;
+                    }
+                  }
+                }
+              } catch (err) {
+                _didIteratorError6 = true;
+                _iteratorError6 = err;
+              } finally {
+                try {
+                  if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                    _iterator6.return();
+                  }
+                } finally {
+                  if (_didIteratorError6) {
+                    throw _iteratorError6;
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            _didIteratorError5 = true;
+            _iteratorError5 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                _iterator5.return();
+              }
+            } finally {
+              if (_didIteratorError5) {
+                throw _iteratorError5;
+              }
+            }
+          }
+        } else {
+          var _iteratorNormalCompletion7 = true;
+          var _didIteratorError7 = false;
+          var _iteratorError7 = undefined;
+
+          try {
+            for (var _iterator7 = columnNames[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+              var _col = _step7.value;
+
+              maxLabelWidth[_col] = 0;
+            }
+          } catch (err) {
+            _didIteratorError7 = true;
+            _iteratorError7 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                _iterator7.return();
+              }
+            } finally {
+              if (_didIteratorError7) {
+                throw _iteratorError7;
+              }
+            }
+          }
+        }
+
+        tree.metadata._maxLabelWidth = maxLabelWidth;
+      }
+
+      /**
+       * Try to find a metadata block at a position. 
+       * 
+       * @param  {Object.<string, Object[]>} blocks Map with metadata block coordinate information for each leaf branch.
+       * @param  {number} x x-axis coordinate position
+       * @param  {number} y y-axis coordinate position
+       * @return {?Object} Metadata block at x,y coordinates if any otherwise null
+       */
+      function findMetadataBlock(blocks, x, y) {
+        for (var branchId in blocks) {
+          var row = blocks[branchId];
+          var _iteratorNormalCompletion8 = true;
+          var _didIteratorError8 = false;
+          var _iteratorError8 = undefined;
+
+          try {
+            for (var _iterator8 = row[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+              var cell = _step8.value;
+
+              if (x >= cell.x && x <= cell.x + cell.w && y >= cell.y && y <= cell.y + cell.h) {
+                return cell;
+              }
+            }
+          } catch (err) {
+            _didIteratorError8 = true;
+            _iteratorError8 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                _iterator8.return();
+              }
+            } finally {
+              if (_didIteratorError8) {
+                throw _iteratorError8;
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function getBackingStorePixelRatio(context) {
+        return context.backingStorePixelRatio || context.webkitBackingStorePixelRatio || context.mozBackingStorePixelRatio || context.msBackingStorePixelRatio || context.oBackingStorePixelRatio || 1;
+      }
+
+      function getPixelRatio(canvas) {
+        return (window.devicePixelRatio || 1) / getBackingStorePixelRatio(canvas);
+      }
+
+      /**
+       * Translate a mouse event to the internal coordinates of a PhyloCanvas Tree object.
+       *
+       * Adapted from `translateClick()` in phylocanvas/src/utils/canvas.js
+       * 
+       * @param  {MouseEvent} event Mouse event object
+       * @param  {PhyloCanvas.Tree} PhyloCanvas Tree object
+       * @return {number[]} Adjusted x,y coordinate positions
+       */
+      function translateMouseEvent(event, tree) {
+        var pixelRatio = getPixelRatio(tree.canvas);
+        return [(event.offsetX - tree.offsetx) / tree.zoom * pixelRatio, (event.offsetY - tree.offsety) / tree.zoom * pixelRatio];
+      }
+
+      /**
+       * Get the default tooltip inner HTML for a metadata block.
+       * 
+       * @param  {Object} block Metadata block/cell object
+       * @return {string} Inner HTML for the PhyloCanvas tooltip
+       */
+      function defaultTooltipInnerHTML(block) {
+        var columnName = block.columnName,
+            data = block.data,
+            leaf = block.leaf;
+        var colour = data.colour,
+            label = data.label;
+
+        return '\n    <table style="border: 2px solid ' + colour + '">\n      <tbody>\n        <tr>\n          <td><b>Sample</b></td>\n          <td>' + leaf + '</td>\n        </tr>\n        <tr>\n          <td><b>' + columnName + '</b></td>\n          <td>' + label + '</td>\n        </tr>\n      </tbody>\n    </table>';
+      }
+
+      function displayMetadataTooltip(tooltip, block, event, func) {
+        tooltip.element.innerHTML = func ? func(block) : defaultTooltipInnerHTML(block);
+        tooltip.element.style.top = event.clientY + 'px';
+        tooltip.element.style.left = event.clientX + 'px';
+        tooltip.element.style.display = 'block';
+        tooltip.closed = false;
+      }
+
+      function metadataPlugin(decorate) {
+        decorate(_phylocanvas2.default, 'createTree', function (delegate, args) {
+          var tree = delegate.apply(undefined, _toConsumableArray(args));
+
+          tree.metadata = Object.assign({}, DEFAULTS, tree.metadata || {});
+
+          return tree;
+        });
+
+        var alignLabels = _phylocanvas.Tree.prototype.__lookupGetter__('alignLabels');
+        _phylocanvas.Tree.prototype.__defineGetter__('alignLabels', function () {
+          if (this.metadata.active) {
+            return this.labelAlign && this.labelAlignEnabled;
+          }
+          return alignLabels.call(this);
+        });
+
+        decorate(_phylocanvas.Prerenderer, 'run', function (delegate, args) {
+          delegate.apply(this, args);
+
+          var _args = _slicedToArray(args, 1),
+              tree = _args[0];
+
+          setMaxLabelWidths(tree);
+          tree.metadata._maxBlockSize = null;
+        });
+
+        decorate(_phylocanvas.Tree, 'draw', function (delegate, args) {
+          if (this.metadata.active) {
+            this.metadata._headingDrawn = false;
+          }
+          delegate.apply(this, args);
+        });
+
+        decorate(_phylocanvas.Tree, 'getBounds', function (delegate, args) {
+          var bounds = delegate.apply(this, args);
+          if (this.metadata.active) {
+            var minx = bounds[0][0];
+            var miny = bounds[0][1];
+            var maxx = bounds[1][0];
+            var maxy = bounds[1][1];
+            var _metadata = this.metadata,
+                _maxHeaderWidth = _metadata._maxHeaderWidth,
+                _maxHeaderHeight = _metadata._maxHeaderHeight;
+            var treeType = this.treeType;
+
+            var labelsOnY = treeType === 'rectangular' || treeType === 'diagonal';
+            var labelsOnX = treeType === 'hierarchical';
+            return [[minx - (labelsOnX ? _maxHeaderWidth + _maxHeaderHeight : 0), miny - (labelsOnY ? _maxHeaderWidth + _maxHeaderHeight : 0)], [maxx, maxy]];
+          }
+          return bounds;
+        });
+
+        decorate(_phylocanvas.Branch, 'drawLeaf', function (delegate) {
+          delegate.call(this);
+          if (this.tree.metadata.active) {
+            drawMetadata.call(this, this);
+          }
+        });
+
+        decorate(_phylocanvas.Branch, 'getTotalLength', function (delegate) {
+          var totalSize = delegate.call(this);
+
+          if (this.tree.metadata.active) {
+            totalSize += getMetadataLength(this.tree);
+          }
+          return totalSize;
+        });
+
+        decorate(_phylocanvas.Tree, 'drag', function (delegate, args) {
+          if (!this.pickedup && this.metadata.showTooltip) {
+            var _args2 = _slicedToArray(args, 1),
+                event = _args2[0];
+
+            var _translateMouseEvent = translateMouseEvent(event, this),
+                _translateMouseEvent2 = _slicedToArray(_translateMouseEvent, 2),
+                x = _translateMouseEvent2[0],
+                y = _translateMouseEvent2[1];
+
+            var block = findMetadataBlock(this.metadata._blockCoords, x, y);
+            if (block) {
+              displayMetadataTooltip(this.tooltip, block, event, this.metadata.tooltipFunc);
+              return;
+            }
+          }
+          delegate.apply(this, args);
+        });
+
+        decorate(_phylocanvas2.default, 'createTree', function (delegate, args) {
+          var tree = delegate.apply(undefined, _toConsumableArray(args));
+
+          var _args3 = _slicedToArray(args, 2),
+              _args3$ = _args3[1],
+              config = _args3$ === undefined ? {} : _args3$;
+
+          var DEFAULTS = {
+            active: true,
+            width: 100,
+            height: 20,
+            fillStyle: 'black',
+            strokeStyle: 'black',
+            lineWidth: 1,
+            fontFamily: 'Sans-serif',
+            fontSize: 16,
+            textBaseline: 'bottom',
+            textAlign: 'center',
+            digits: 2,
+            position: {
+              bottom: 10,
+              left: 10
+            }
+          };
+          tree.scalebar = Object.assign({}, DEFAULTS, config.scalebar || {});
+          return tree;
+        });
+        decorate(_phylocanvas.Tree, 'draw', function (delegate, args) {
+          delegate.apply(this, args);
+          if (this.scalebar.active) {
+            drawScalebar.apply(this);
+          }
+        });
+
+        decorate(_phylocanvas2.default, 'createTree', function (delegate, args) {
+          var tree = delegate.apply(undefined, _toConsumableArray(args));
+
+          var _args4 = _slicedToArray(args, 2),
+              _args4$ = _args4[1],
+              config = _args4$ === undefined ? {} : _args4$;
+
+          if (config.contextMenu !== false) {
+            tree.contextMenu = new ContextMenu(tree, config.contextMenu);
+            tree.addListener('contextmenu', handleContextmenu.bind(tree));
+            decorate(tree, 'cleanup', onCleanup);
+          }
+
+          return tree;
+        });
+
+        decorate(_phylocanvas2.default, 'createTree', function (delegate, args) {
+          var tree = delegate.apply(undefined, _toConsumableArray(args));
+
+          var _args5 = _slicedToArray(args, 2),
+              _args5$ = _args5[1],
+              config = _args5$ === undefined ? {} : _args5$;
+
+          if (config.history !== false) {
+            tree.history = new History(tree, config.history || {});
+          }
+          return tree;
+        });
+      }
+
+      function createAnchorElement(_ref) {
+        var _ref$text = _ref.text,
+            text = _ref$text === undefined ? 'link' : _ref$text,
+            _ref$filename = _ref.filename,
+            filename = _ref$filename === undefined ? 'file' : _ref$filename,
+            href = _ref.href;
+
+        var anchorElement = document.createElement('a');
+        anchorElement.appendChild(document.createTextNode(text));
+        anchorElement.href = href;
+        anchorElement.download = filename;
+        return anchorElement;
+      }
+
+      function createImageLink(_ref2) {
+        var tree = _ref2.tree,
+            filenames = _ref2.filenames;
+
+        return createAnchorElement({
+          text: this.text,
+          filename: filenames.image,
+          href: tree.getPngUrl()
+        });
+      }
+
+      function createLeafLabelsLink(_ref3, node) {
+        var tree = _ref3.tree,
+            filenames = _ref3.filenames;
+
+        return createAnchorElement({
+          text: this.text,
+          filename: filenames.leafLabels,
+          href: createBlobUrl((node || tree.root).getChildProperties('label').join('\n'))
+        });
+      }
+
+      function createSelectedLabelsLink(_ref4) {
+        var tree = _ref4.tree,
+            filenames = _ref4.filenames;
+
+        var labels = tree.leaves.reduce(function (memo, leaf) {
+          if (leaf[tree.clickFlag] === true) {
+            memo.push(leaf.label);
+          }
+          return memo;
+        }, []);
+        if (labels.length === 0) {
+          return null;
+        }
+        return createAnchorElement({
+          text: this.text,
+          filename: filenames.leafLabels,
+          href: createBlobUrl(labels.join('\n'))
+        });
+      }
+
+      function createNewickLink(_ref5, node) {
+        var tree = _ref5.tree,
+            filenames = _ref5.filenames;
+
+        return createAnchorElement({
+          text: this.text,
+          filename: filenames.newick,
+          href: createBlobUrl((node || tree.root).getNwk())
+        });
+      }
+
+      function createAboutLink() {
+        var anchorElement = document.createElement('a');
+        var imageElement = document.createElement('img');
+        imageElement.src = 'data:image/svg+xml;utf8,%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20viewBox%3D%220%200%20619.3%20166.7%22%20style%3D%22enable-background%3Anew%200%200%20619.3%20166.7%3B%22%20xml%3Aspace%3D%22preserve%22%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%09.st0%7Bfill%3A%233C7383%3B%7D%09.st1%7Bfill%3A%239BB7BF%3B%7D%3C%2Fstyle%3E%3Cg%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M139.5%2C145.8V86.4h24.1c2.5%2C0%2C4.8%2C0.5%2C6.9%2C1.6c2.1%2C1.1%2C3.9%2C2.5%2C5.4%2C4.2c1.5%2C1.8%2C2.7%2C3.7%2C3.6%2C5.9%20%20%20c0.9%2C2.2%2C1.3%2C4.4%2C1.3%2C6.7c0%2C2.4-0.4%2C4.7-1.2%2C7c-0.8%2C2.2-1.9%2C4.2-3.4%2C5.9c-1.5%2C1.7-3.2%2C3.1-5.2%2C4.1c-2%2C1-4.3%2C1.5-6.7%2C1.5h-20.5v22.4%20%20%20H139.5z%20M143.8%2C119.5H164c1.9%2C0%2C3.7-0.4%2C5.2-1.2c1.5-0.8%2C2.8-1.9%2C3.9-3.3c1.1-1.4%2C1.9-2.9%2C2.5-4.7c0.6-1.8%2C0.9-3.6%2C0.9-5.5%20%20%20c0-2-0.3-3.8-1-5.6c-0.7-1.8-1.6-3.3-2.8-4.6c-1.2-1.3-2.6-2.4-4.1-3.2c-1.6-0.8-3.2-1.2-5-1.2h-19.7V119.5z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M224.6%2C145.8h-4.1v-24.3c0-5.4-0.9-9.5-2.7-12.1s-4.5-4-7.9-4c-1.8%2C0-3.5%2C0.3-5.2%2C1c-1.7%2C0.7-3.3%2C1.6-4.7%2C2.8%20%20%20c-1.5%2C1.2-2.7%2C2.7-3.8%2C4.3c-1.1%2C1.6-1.9%2C3.4-2.4%2C5.3v27h-4.1V84.7h4.1v28c1.8-3.4%2C4.2-6.1%2C7.3-8.1s6.5-3%2C10-3%20%20%20c2.4%2C0%2C4.4%2C0.4%2C6.1%2C1.3c1.7%2C0.9%2C3.1%2C2.2%2C4.3%2C3.9c1.1%2C1.7%2C2%2C3.7%2C2.5%2C6.1c0.5%2C2.4%2C0.8%2C5%2C0.8%2C8V145.8z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M238.8%2C160.7c0.5%2C0%2C1.2%2C0%2C2.2-0.1c1-0.1%2C1.7-0.2%2C2.2-0.5c0.2-0.1%2C0.5-0.4%2C0.8-0.8c0.3-0.4%2C0.7-1.1%2C1.2-2.1%20%20%20c0.5-1%2C1.1-2.4%2C1.9-4.2c0.8-1.8%2C1.7-4.2%2C2.9-7.1l-19.2-43.5h4.4l17%2C39.4l15.9-39.4h4l-23.5%2C57.3c-0.8%2C2-1.9%2C3.3-3.3%2C4%20%20%20c-1.3%2C0.6-3%2C1-4.9%2C1c-0.3%2C0-0.6%2C0-0.8%2C0c-0.3%2C0-0.6%2C0-0.8-0.1V160.7z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M318.2%2C146.7c-3%2C0-5.8-0.6-8.4-1.8c-2.6-1.2-4.8-2.8-6.6-4.9c-1.9-2.1-3.3-4.5-4.4-7.2c-1-2.7-1.6-5.6-1.6-8.6%20%20%20c0-3.1%2C0.5-6%2C1.6-8.7s2.6-5.1%2C4.5-7.2s4.1-3.7%2C6.6-4.9c2.5-1.2%2C5.3-1.8%2C8.3-1.8s5.7%2C0.6%2C8.3%2C1.8c2.6%2C1.2%2C4.8%2C2.8%2C6.7%2C4.9%20%20%20s3.4%2C4.5%2C4.5%2C7.2s1.6%2C5.6%2C1.6%2C8.7c0%2C3-0.5%2C5.9-1.6%2C8.6c-1.1%2C2.7-2.5%2C5.1-4.4%2C7.2c-1.9%2C2.1-4.1%2C3.7-6.7%2C4.9%20%20%20C323.9%2C146.1%2C321.1%2C146.7%2C318.2%2C146.7z%20M301.4%2C124.3c0%2C2.6%2C0.4%2C5%2C1.3%2C7.2c0.9%2C2.3%2C2.1%2C4.2%2C3.6%2C5.9c1.5%2C1.7%2C3.3%2C3%2C5.3%2C4%20%20%20c2%2C1%2C4.2%2C1.5%2C6.5%2C1.5s4.5-0.5%2C6.5-1.5c2-1%2C3.8-2.3%2C5.3-4.1c1.5-1.7%2C2.7-3.7%2C3.6-6s1.4-4.7%2C1.4-7.3c0-2.6-0.5-5-1.4-7.2%20%20%20c-0.9-2.3-2.1-4.2-3.6-5.9c-1.5-1.7-3.3-3.1-5.3-4.1c-2-1-4.2-1.5-6.5-1.5c-2.3%2C0-4.4%2C0.5-6.4%2C1.5c-2%2C1-3.8%2C2.4-5.4%2C4.1%20%20%20c-1.5%2C1.7-2.8%2C3.8-3.6%2C6.1C301.8%2C119.3%2C301.4%2C121.7%2C301.4%2C124.3z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M405.7%2C146.7c-2.1%2C0-4-0.3-5.8-1c-1.8-0.7-3.3-1.7-4.6-2.9c-1.3-1.2-2.3-2.7-3.1-4.4s-1.1-3.5-1.1-5.4%20%20%20c0-2.1%2C0.4-3.9%2C1.3-5.6c0.9-1.7%2C2.1-3.1%2C3.8-4.4c1.6-1.2%2C3.6-2.2%2C5.8-2.8s4.7-1%2C7.4-1c2%2C0%2C4%2C0.2%2C6%2C0.5c2%2C0.4%2C3.8%2C0.9%2C5.4%2C1.5v-3%20%20%20c0-3.2-0.9-5.8-2.7-7.6c-1.8-1.8-4.4-2.7-7.8-2.7c-2.3%2C0-4.6%2C0.4-6.8%2C1.3c-2.2%2C0.9-4.5%2C2.1-6.9%2C3.7l-2.8-5.9%20%20%20c5.6-3.8%2C11.3-5.7%2C17.3-5.7c5.9%2C0%2C10.6%2C1.5%2C13.9%2C4.6c3.3%2C3.1%2C5%2C7.5%2C5%2C13.2V135c0%2C1.1%2C0.2%2C1.8%2C0.6%2C2.3c0.4%2C0.4%2C1%2C0.7%2C2%2C0.8v7.9%20%20%20c-0.9%2C0.2-1.7%2C0.3-2.4%2C0.3c-0.7%2C0.1-1.4%2C0.1-2%2C0.1c-1.8-0.1-3.1-0.6-4-1.4c-0.9-0.8-1.5-2-1.7-3.3l-0.2-2.8%20%20%20c-1.9%2C2.6-4.3%2C4.5-7.1%2C5.9C412%2C146%2C408.9%2C146.7%2C405.7%2C146.7z%20M408.2%2C139.9c2.2%2C0%2C4.3-0.4%2C6.2-1.2c2-0.8%2C3.5-1.9%2C4.6-3.4%20%20%20c1.2-1%2C1.7-2.1%2C1.7-3.2v-5.8c-1.5-0.6-3.2-1.1-4.9-1.4s-3.4-0.5-5.1-0.5c-3.2%2C0-5.9%2C0.7-8%2C2.1s-3.1%2C3.3-3.1%2C5.7%20%20%20c0%2C2.2%2C0.8%2C4%2C2.4%2C5.5C403.7%2C139.2%2C405.7%2C139.9%2C408.2%2C139.9z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M479.7%2C145.8h-9.1v-24.5c0-4.1-0.7-7.1-2-9c-1.3-1.9-3.2-2.8-5.7-2.8c-1.3%2C0-2.7%2C0.3-4%2C0.8%20%20%20c-1.3%2C0.5-2.6%2C1.2-3.8%2C2.1c-1.2%2C0.9-2.2%2C2-3.1%2C3.3s-1.6%2C2.6-2.1%2C4.1v26h-9.1V102h8.3v8.8c1.7-3%2C4-5.3%2C7.2-7%20%20%20c3.1-1.7%2C6.6-2.6%2C10.4-2.6c2.6%2C0%2C4.7%2C0.5%2C6.4%2C1.4c1.7%2C0.9%2C3%2C2.2%2C4%2C3.9c1%2C1.6%2C1.6%2C3.5%2C2%2C5.7c0.4%2C2.1%2C0.6%2C4.4%2C0.6%2C6.8V145.8z%22%2F%3E%09%3Cpolygon%20class%3D%22st0%22%20points%3D%22501.3%2C145.8%20484.8%2C102%20494.2%2C102%20506.5%2C138.1%20519%2C102%20527.6%2C102%20511.1%2C145.8%20%20%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M544.3%2C146.7c-2.1%2C0-4-0.3-5.8-1c-1.8-0.7-3.3-1.7-4.6-2.9c-1.3-1.2-2.3-2.7-3.1-4.4s-1.1-3.5-1.1-5.4%20%20%20c0-2.1%2C0.4-3.9%2C1.3-5.6c0.9-1.7%2C2.1-3.1%2C3.8-4.4c1.6-1.2%2C3.6-2.2%2C5.8-2.8c2.2-0.7%2C4.7-1%2C7.4-1c2%2C0%2C4%2C0.2%2C6%2C0.5%20%20%20c2%2C0.4%2C3.8%2C0.9%2C5.4%2C1.5v-3c0-3.2-0.9-5.8-2.7-7.6c-1.8-1.8-4.4-2.7-7.8-2.7c-2.3%2C0-4.6%2C0.4-6.8%2C1.3c-2.2%2C0.9-4.5%2C2.1-6.9%2C3.7%20%20%20l-2.8-5.9c5.6-3.8%2C11.3-5.7%2C17.3-5.7c5.9%2C0%2C10.6%2C1.5%2C13.9%2C4.6c3.3%2C3.1%2C5%2C7.5%2C5%2C13.2V135c0%2C1.1%2C0.2%2C1.8%2C0.6%2C2.3c0.4%2C0.4%2C1%2C0.7%2C2%2C0.8%20%20%20v7.9c-0.9%2C0.2-1.7%2C0.3-2.4%2C0.3c-0.7%2C0.1-1.4%2C0.1-2%2C0.1c-1.8-0.1-3.1-0.6-4-1.4c-0.9-0.8-1.5-2-1.7-3.3l-0.2-2.8%20%20%20c-1.9%2C2.6-4.3%2C4.5-7.1%2C5.9C550.6%2C146%2C547.6%2C146.7%2C544.3%2C146.7z%20M546.8%2C139.9c2.2%2C0%2C4.3-0.4%2C6.2-1.2c2-0.8%2C3.5-1.9%2C4.6-3.4%20%20%20c1.2-1%2C1.7-2.1%2C1.7-3.2v-5.8c-1.5-0.6-3.2-1.1-4.9-1.4c-1.7-0.3-3.4-0.5-5.1-0.5c-3.2%2C0-5.9%2C0.7-8%2C2.1s-3.1%2C3.3-3.1%2C5.7%20%20%20c0%2C2.2%2C0.8%2C4%2C2.4%2C5.5C542.3%2C139.2%2C544.3%2C139.9%2C546.8%2C139.9z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M595.7%2C146.7c-1.8%2C0-3.5-0.1-5.3-0.4c-1.8-0.3-3.6-0.7-5.3-1.2c-1.7-0.5-3.4-1.2-5-1.9s-3-1.6-4.2-2.6l3.8-6.2%20%20%20c5.3%2C3.7%2C10.5%2C5.6%2C15.8%2C5.6c2.8%2C0%2C4.9-0.5%2C6.5-1.6c1.6-1.1%2C2.4-2.6%2C2.4-4.5c0-1.8-0.9-3.2-2.7-4.1c-1.8-0.9-4.6-1.8-8.5-2.7%20%20%20c-2.7-0.7-5-1.4-6.9-2.1c-1.9-0.7-3.5-1.5-4.7-2.3c-1.2-0.9-2.1-1.9-2.6-3.1c-0.6-1.2-0.8-2.6-0.8-4.3c0-2.2%2C0.4-4.2%2C1.3-5.9%20%20%20c0.9-1.7%2C2.1-3.2%2C3.6-4.4c1.5-1.2%2C3.3-2.1%2C5.4-2.7c2.1-0.6%2C4.3-0.9%2C6.6-0.9c3.1%2C0%2C6.2%2C0.5%2C9.1%2C1.5c2.9%2C1%2C5.5%2C2.4%2C7.8%2C4.1l-3.9%2C5.6%20%20%20c-4.1-3.1-8.5-4.7-13.2-4.7c-2.3%2C0-4.3%2C0.5-5.9%2C1.5c-1.6%2C1-2.4%2C2.5-2.4%2C4.6c0%2C0.9%2C0.2%2C1.6%2C0.5%2C2.3c0.3%2C0.6%2C0.9%2C1.1%2C1.6%2C1.6%20%20%20c0.7%2C0.4%2C1.7%2C0.9%2C2.9%2C1.2c1.2%2C0.4%2C2.7%2C0.8%2C4.5%2C1.2c3%2C0.7%2C5.5%2C1.5%2C7.7%2C2.2c2.1%2C0.7%2C3.9%2C1.6%2C5.3%2C2.6c1.4%2C1%2C2.4%2C2.1%2C3.1%2C3.4%20%20%20c0.7%2C1.3%2C1%2C2.9%2C1%2C4.7c0%2C2.1-0.4%2C3.9-1.2%2C5.6c-0.8%2C1.7-2%2C3.1-3.5%2C4.3c-1.5%2C1.2-3.4%2C2.1-5.5%2C2.7C600.8%2C146.4%2C598.3%2C146.7%2C595.7%2C146.7%20%20%20z%22%2F%3E%09%3Cpath%20class%3D%22st0%22%20d%3D%22M345.5%2C124c0-3.1%2C0.5-6%2C1.6-8.7c1.1-2.7%2C2.6-5.1%2C4.6-7.2c2-2.1%2C4.4-3.7%2C7.1-4.9c2.8-1.2%2C5.9-1.8%2C9.4-1.8%20%20%20c4.5%2C0%2C8.4%2C1%2C11.7%2C3c3.3%2C2%2C5.7%2C4.6%2C7.3%2C7.9l-8.9%2C2.8c-1.1-1.8-2.5-3.3-4.3-4.3c-1.8-1-3.8-1.5-5.9-1.5c-1.8%2C0-3.6%2C0.4-5.1%2C1.1%20%20%20c-1.6%2C0.7-3%2C1.7-4.1%2C3c-1.2%2C1.3-2.1%2C2.9-2.8%2C4.6c-0.7%2C1.8-1%2C3.8-1%2C5.9c0%2C2.1%2C0.3%2C4.1%2C1%2C5.9c0.7%2C1.8%2C1.6%2C3.4%2C2.8%2C4.7%20%20%20c1.2%2C1.3%2C2.6%2C2.4%2C4.2%2C3.1c1.6%2C0.8%2C3.3%2C1.1%2C5.1%2C1.1c1.1%2C0%2C2.2-0.2%2C3.3-0.5c1.1-0.3%2C2.1-0.7%2C3-1.3c0.9-0.6%2C1.7-1.2%2C2.4-1.9%20%20%20c0.7-0.7%2C1.2-1.5%2C1.5-2.3l9%2C2.7c-1.4%2C3.3-3.9%2C6-7.3%2C8.1c-3.4%2C2.1-7.4%2C3.1-12%2C3.1c-3.4%2C0-6.5-0.6-9.3-1.8c-2.8-1.2-5.2-2.9-7.1-5%20%20%20c-2-2.1-3.5-4.5-4.6-7.2C346.1%2C129.9%2C345.5%2C127%2C345.5%2C124z%22%2F%3E%09%3Cpolygon%20class%3D%22st0%22%20points%3D%22280.8%2C84.7%20285.1%2C84.7%20285.1%2C146.3%20280.8%2C146.3%20%20%22%2F%3E%09%3Cpath%20class%3D%22st1%22%20d%3D%22M110.6%2C105.2c0-0.2%2C0.1-0.3%2C0.1-0.5c0-0.1%2C0-0.3%2C0.1-0.4c0-0.2%2C0-0.4%2C0.1-0.6c0-0.2%2C0-0.4%2C0-0.6%20%20%20c0-0.1%2C0-0.2%2C0-0.4c0-0.1%2C0-0.3%2C0-0.4l0-0.3c0-0.1%2C0-0.3%2C0-0.4c0-0.2%2C0-0.3%2C0-0.4l0-0.2c0-0.2%2C0-0.4-0.1-0.5l0-0.2%20%20%20c0-0.2-0.1-0.4-0.1-0.6l0-0.1c0-0.2-0.1-0.3-0.1-0.5l-0.1-0.2c0-0.1-0.1-0.3-0.1-0.4l-0.1-0.2c0-0.1-0.1-0.3-0.1-0.4%20%20%20c0-0.1-0.1-0.2-0.1-0.3c0-0.1-0.1-0.2-0.1-0.4l-0.1-0.2c-0.1-0.2-0.1-0.4-0.2-0.6c-0.1-0.2-0.2-0.4-0.3-0.6l-0.1-0.1%20%20%20c-0.1-0.2-0.2-0.3-0.2-0.5l-0.1-0.2c-0.1-0.2-0.2-0.3-0.3-0.5l0-0.1c-0.1-0.2-0.2-0.4-0.3-0.5c-0.1-0.2-0.2-0.4-0.4-0.6l-0.1-0.1%20%20%20c-0.1-0.2-0.2-0.3-0.4-0.5c-0.1-0.2-0.3-0.4-0.4-0.5l0%2C0c-0.1-0.2-0.3-0.3-0.4-0.5c-0.2-0.2-0.3-0.3-0.5-0.5%20%20%20c-0.2-0.2-0.3-0.3-0.5-0.5c-0.2-0.2-0.4-0.3-0.5-0.5c-0.2-0.2-0.5-0.4-0.8-0.6l-0.4-0.2c-0.2-0.1-0.4-0.2-0.5-0.3%20%20%20c-0.2-0.1-0.4-0.3-0.7-0.4l-0.1-0.1c-0.2-0.1-0.4-0.2-0.6-0.3c-0.2-0.1-0.4-0.2-0.7-0.3l-0.1%2C0c-3.1-1.3-5.9-3-8.4-5.1%20%20%20c-3.1-2.7-5.6-5.9-7.4-9.5l0%2C0c-1.4-2.9-2.4-6.1-2.9-9.3c0-0.1%2C0-0.3-0.1-0.4c-0.8-5.1-4.2-9.6-9.3-11.7%20%20%20c-5.1-2.1-10.7-1.2-14.8%2C1.9c-0.2%2C0.2-0.4%2C0.3-0.6%2C0.4c-1.9%2C1.6-3.5%2C3.6-4.4%2C6c-1%2C2.4-1.3%2C4.9-1%2C7.4l0%2C0c0%2C0.2%2C0.1%2C0.5%2C0.1%2C0.7l0%2C0%20%20%20c0.8%2C5.1%2C4.2%2C9.6%2C9.3%2C11.7l0%2C0c2.2%2C0.9%2C4.2%2C2%2C6.1%2C3.3c0.4%2C0.3%2C0.8%2C0.6%2C1.2%2C0.9l0%2C0c0.4%2C0.3%2C0.7%2C0.6%2C1.1%2C0.9l0%2C0l0%2C0l0%2C0%20%20%20c3.1%2C2.7%2C5.6%2C5.9%2C7.3%2C9.5c1.4%2C2.8%2C2.4%2C5.8%2C2.8%2C8.9l0%2C0.1c0%2C0.3%2C0.1%2C0.5%2C0.1%2C0.8c0%2C0.3%2C0.1%2C0.6%2C0.2%2C0.9c0.1%2C0.2%2C0.1%2C0.5%2C0.2%2C0.7%20%20%20l0.1%2C0.2l0%2C0c0.1%2C0.2%2C0.1%2C0.4%2C0.2%2C0.6c0.1%2C0.2%2C0.2%2C0.5%2C0.3%2C0.7l0.1%2C0.3l0%2C0c0.1%2C0.2%2C0.2%2C0.4%2C0.3%2C0.6c0.1%2C0.3%2C0.3%2C0.5%2C0.4%2C0.8l0%2C0%20%20%20c0.1%2C0.2%2C0.3%2C0.5%2C0.4%2C0.7c0.2%2C0.2%2C0.3%2C0.5%2C0.5%2C0.7c0.2%2C0.2%2C0.3%2C0.5%2C0.5%2C0.7c0.1%2C0.1%2C0.2%2C0.3%2C0.4%2C0.4c0.2%2C0.2%2C0.4%2C0.5%2C0.6%2C0.7%20%20%20c0.2%2C0.2%2C0.3%2C0.3%2C0.5%2C0.5c0.1%2C0.1%2C0.3%2C0.2%2C0.4%2C0.4c0.2%2C0.2%2C0.4%2C0.4%2C0.6%2C0.5c0.2%2C0.2%2C0.5%2C0.3%2C0.7%2C0.5c0.2%2C0.2%2C0.5%2C0.3%2C0.7%2C0.5%20%20%20c0.1%2C0.1%2C0.3%2C0.2%2C0.5%2C0.3l0.4%2C0.2l0.3%2C0.1c0.1%2C0.1%2C0.3%2C0.1%2C0.4%2C0.2c0.2%2C0.1%2C0.4%2C0.2%2C0.7%2C0.3l0.1%2C0c0.2%2C0.1%2C0.4%2C0.2%2C0.7%2C0.3%20%20%20c7.6%2C2.7%2C16-1.1%2C19.1-8.6C110.1%2C107%2C110.4%2C106.1%2C110.6%2C105.2z%22%2F%3E%09%3Cpath%20class%3D%22st1%22%20d%3D%22M12.3%2C84.1c0.1%2C0.1%2C0.3%2C0.2%2C0.4%2C0.3c0.1%2C0.1%2C0.2%2C0.2%2C0.3%2C0.3c0.2%2C0.1%2C0.3%2C0.2%2C0.5%2C0.3c0.2%2C0.1%2C0.3%2C0.2%2C0.5%2C0.4%20%20%20l0.3%2C0.2l0.3%2C0.2l0.2%2C0.1c0.1%2C0.1%2C0.2%2C0.1%2C0.4%2C0.2c0.1%2C0.1%2C0.3%2C0.1%2C0.4%2C0.2l0.2%2C0.1c0.2%2C0.1%2C0.3%2C0.1%2C0.5%2C0.2l0.1%2C0.1%20%20%20c0.2%2C0.1%2C0.4%2C0.1%2C0.6%2C0.2l0.1%2C0c0.2%2C0.1%2C0.3%2C0.1%2C0.5%2C0.2l0.2%2C0.1c0.1%2C0%2C0.3%2C0.1%2C0.4%2C0.1l0.2%2C0.1c0.1%2C0%2C0.3%2C0.1%2C0.4%2C0.1%20%20%20c0.1%2C0%2C0.2%2C0.1%2C0.3%2C0.1c0.1%2C0%2C0.2%2C0.1%2C0.4%2C0.1l0.2%2C0c0.2%2C0%2C0.4%2C0.1%2C0.6%2C0.1c0.2%2C0%2C0.4%2C0.1%2C0.6%2C0.1l0.1%2C0c0.2%2C0%2C0.4%2C0%2C0.5%2C0l0.2%2C0%20%20%20c0.2%2C0%2C0.4%2C0%2C0.6%2C0l0.1%2C0c0.2%2C0%2C0.4%2C0%2C0.6%2C0c0.2%2C0%2C0.4%2C0%2C0.7%2C0l0.1%2C0c0.2%2C0%2C0.4%2C0%2C0.6-0.1c0.2%2C0%2C0.4-0.1%2C0.7-0.1l0.1%2C0%20%20%20c0.2%2C0%2C0.4-0.1%2C0.6-0.1c0.2-0.1%2C0.5-0.1%2C0.7-0.2c0.2-0.1%2C0.4-0.1%2C0.7-0.2c0.2-0.1%2C0.4-0.2%2C0.7-0.2c0.3-0.1%2C0.6-0.2%2C0.9-0.4%20%20%20c0.1-0.1%2C0.3-0.1%2C0.4-0.2c0.2-0.1%2C0.4-0.2%2C0.6-0.3c0.2-0.1%2C0.4-0.2%2C0.6-0.4l0.1-0.1c0.2-0.1%2C0.4-0.2%2C0.6-0.4%20%20%20c0.2-0.1%2C0.4-0.3%2C0.6-0.4l0.1%2C0c2.7-2.1%2C5.6-3.7%2C8.6-4.7c3.9-1.4%2C7.9-1.9%2C11.9-1.7l0%2C0c3.3%2C0.2%2C6.5%2C0.9%2C9.5%2C2.1%20%20%20c0.1%2C0.1%2C0.3%2C0.1%2C0.4%2C0.2c4.8%2C1.8%2C10.4%2C1.2%2C14.8-2.2c4.4-3.4%2C6.4-8.7%2C5.8-13.8c0-0.2-0.1-0.5-0.1-0.7c-0.4-2.4-1.4-4.8-3-6.9%20%20%20c-1.6-2.1-3.6-3.6-5.9-4.6l0%2C0c-0.2-0.1-0.5-0.2-0.7-0.3l0%2C0c-4.8-1.8-10.4-1.1-14.7%2C2.2l0%2C0c-1.9%2C1.5-3.8%2C2.7-5.9%2C3.6%20%20%20c-0.5%2C0.2-0.9%2C0.4-1.4%2C0.6l0%2C0c-0.4%2C0.2-0.9%2C0.3-1.3%2C0.5l0%2C0l0%2C0l0%2C0c-3.9%2C1.3-7.9%2C1.9-11.9%2C1.6c-3.1-0.2-6.2-0.9-9.2-2l0%2C0%20%20%20c-0.3-0.1-0.5-0.2-0.8-0.3c-0.3-0.1-0.5-0.2-0.8-0.3c-0.2-0.1-0.5-0.1-0.7-0.2l-0.2-0.1l0%2C0c-0.2-0.1-0.4-0.1-0.7-0.1%20%20%20c-0.3%2C0-0.5-0.1-0.8-0.1l-0.3%2C0l0%2C0c-0.2%2C0-0.5%2C0-0.7-0.1c-0.3%2C0-0.6%2C0-0.8%2C0l0%2C0c-0.3%2C0-0.6%2C0-0.9%2C0c-0.3%2C0-0.6%2C0-0.9%2C0.1%20%20%20c-0.3%2C0-0.6%2C0.1-0.9%2C0.1c-0.2%2C0-0.4%2C0.1-0.5%2C0.1c-0.3%2C0.1-0.6%2C0.1-0.9%2C0.2c-0.2%2C0.1-0.5%2C0.1-0.7%2C0.2c-0.2%2C0.1-0.3%2C0.1-0.5%2C0.2%20%20%20c-0.3%2C0.1-0.5%2C0.2-0.8%2C0.3c-0.3%2C0.1-0.5%2C0.2-0.8%2C0.3c-0.3%2C0.1-0.5%2C0.3-0.8%2C0.4c-0.2%2C0.1-0.3%2C0.2-0.5%2C0.3c-0.1%2C0.1-0.2%2C0.1-0.4%2C0.2%20%20%20L14%2C59.9c-0.1%2C0.1-0.3%2C0.2-0.4%2C0.3c-0.2%2C0.1-0.4%2C0.3-0.6%2C0.4l-0.1%2C0c-0.2%2C0.1-0.4%2C0.3-0.6%2C0.5c-6.1%2C5.3-7.1%2C14.5-2%2C20.9%20%20%20C10.9%2C82.8%2C11.6%2C83.5%2C12.3%2C84.1z%22%2F%3E%09%3Cpath%20class%3D%22st1%22%20d%3D%22M72.6%2C80.7c0.2-0.1%2C0.3-0.1%2C0.5-0.2c0.1-0.1%2C0.3-0.1%2C0.4-0.2c0.2-0.1%2C0.4-0.2%2C0.5-0.2c0.2-0.1%2C0.4-0.2%2C0.6-0.3%20%20%20c0.1-0.1%2C0.2-0.1%2C0.3-0.2c0.1-0.1%2C0.2-0.1%2C0.3-0.2l0.2-0.1c0.1-0.1%2C0.2-0.1%2C0.4-0.2c0.1-0.1%2C0.2-0.2%2C0.4-0.2l0.2-0.1%20%20%20c0.1-0.1%2C0.3-0.2%2C0.4-0.3l0.1-0.1c0.2-0.1%2C0.3-0.3%2C0.5-0.4l0%2C0c0.1-0.1%2C0.3-0.2%2C0.4-0.3l0.2-0.2c0.1-0.1%2C0.2-0.2%2C0.3-0.3l0.2-0.2%20%20%20l0.3-0.3l0.2-0.3l0.2-0.3l0.1-0.2c0.1-0.1%2C0.3-0.3%2C0.4-0.5c0.1-0.2%2C0.2-0.3%2C0.4-0.5l0.1-0.1c0.1-0.1%2C0.2-0.3%2C0.3-0.4l0.1-0.1%20%20%20c0.1-0.2%2C0.2-0.3%2C0.3-0.5l0-0.1c0.1-0.2%2C0.2-0.4%2C0.3-0.6c0.1-0.2%2C0.2-0.4%2C0.3-0.6l0-0.1c0.1-0.2%2C0.2-0.4%2C0.2-0.6%20%20%20c0.1-0.2%2C0.2-0.4%2C0.2-0.6l0-0.1c0.1-0.2%2C0.1-0.4%2C0.2-0.6c0.1-0.2%2C0.1-0.4%2C0.2-0.7c0.1-0.2%2C0.1-0.5%2C0.1-0.7c0-0.2%2C0.1-0.5%2C0.1-0.7%20%20%20c0-0.3%2C0.1-0.6%2C0.1-1c0-0.1%2C0-0.3%2C0-0.4c0-0.2%2C0-0.4%2C0-0.6c0-0.3%2C0-0.5%2C0-0.8l0-0.2c0-0.2%2C0-0.4%2C0-0.7c0-0.2%2C0-0.5-0.1-0.7l0-0.1%20%20%20c-0.5-3.4-0.4-6.7%2C0.2-9.8c0.7-4%2C2.3-7.8%2C4.5-11.2l0%2C0c1.8-2.7%2C4-5.2%2C6.6-7.2c0.1-0.1%2C0.2-0.2%2C0.3-0.3c4-3.3%2C6.2-8.5%2C5.4-13.9%20%20%20c-0.8-5.5-4.4-9.8-9.1-11.9c-0.2-0.1-0.5-0.2-0.7-0.3c-2.3-0.9-4.8-1.2-7.4-0.8c-2.6%2C0.4-4.9%2C1.4-6.9%2C2.8l0%2C0%20%20%20c-0.2%2C0.2-0.4%2C0.3-0.6%2C0.5l0%2C0c-3.9%2C3.3-6.2%2C8.4-5.4%2C13.9l0%2C0c0.3%2C2.3%2C0.4%2C4.7%2C0.2%2C6.9c0%2C0.5-0.1%2C1-0.2%2C1.5l0%2C0%20%20%20c-0.1%2C0.5-0.1%2C0.9-0.2%2C1.4l0%2C0l0%2C0l0%2C0c-0.7%2C4-2.3%2C7.8-4.5%2C11.1c-1.7%2C2.6-3.8%2C5-6.3%2C7l0%2C0c-0.2%2C0.2-0.4%2C0.3-0.6%2C0.5%20%20%20c-0.2%2C0.2-0.4%2C0.4-0.7%2C0.6c-0.2%2C0.2-0.4%2C0.3-0.5%2C0.5l-0.2%2C0.2l0%2C0c-0.2%2C0.2-0.3%2C0.3-0.4%2C0.5c-0.2%2C0.2-0.3%2C0.4-0.5%2C0.6l-0.2%2C0.3l0%2C0%20%20%20c-0.1%2C0.2-0.3%2C0.4-0.4%2C0.6c-0.2%2C0.2-0.3%2C0.5-0.5%2C0.7l0%2C0c-0.1%2C0.2-0.3%2C0.5-0.4%2C0.7c-0.1%2C0.3-0.3%2C0.5-0.4%2C0.8%20%20%20c-0.1%2C0.3-0.2%2C0.5-0.3%2C0.8c-0.1%2C0.2-0.1%2C0.3-0.2%2C0.5c-0.1%2C0.3-0.2%2C0.6-0.3%2C0.9c-0.1%2C0.2-0.1%2C0.5-0.2%2C0.7c0%2C0.2-0.1%2C0.3-0.1%2C0.5%20%20%20c0%2C0.3-0.1%2C0.6-0.1%2C0.8c0%2C0.3-0.1%2C0.6-0.1%2C0.8c0%2C0.3%2C0%2C0.6%2C0%2C0.9c0%2C0.2%2C0%2C0.4%2C0%2C0.5c0%2C0.1%2C0%2C0.3%2C0%2C0.4l0%2C0.3c0%2C0.2%2C0%2C0.3%2C0%2C0.5%20%20%20c0%2C0.2%2C0%2C0.5%2C0.1%2C0.7l0%2C0.1c0%2C0.2%2C0.1%2C0.5%2C0.1%2C0.7c1.5%2C7.9%2C9%2C13.3%2C17.1%2C12.2C70.7%2C81.3%2C71.7%2C81%2C72.6%2C80.7z%22%2F%3E%09%3Ccircle%20class%3D%22st0%22%20cx%3D%2222.5%22%20cy%3D%2272.6%22%20r%3D%2215.2%22%2F%3E%09%3Ccircle%20class%3D%22st0%22%20cx%3D%2295.5%22%20cy%3D%22102.1%22%20r%3D%2215.2%22%2F%3E%09%3Ccircle%20class%3D%22st0%22%20cx%3D%2284.6%22%20cy%3D%2223.9%22%20r%3D%2215.2%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E';
+        imageElement.style = 'width: 124px; margin: 4px auto 0';
+        anchorElement.appendChild(imageElement);
+        anchorElement.title = 'About Phylocanvas...';
+        anchorElement.href = 'http://phylocanvas.org/';
+        anchorElement.target = '_blank';
+        return anchorElement;
+      }
+
+      var DEFAULT_MENU_ITEMS = exports.DEFAULT_MENU_ITEMS = [[{
+        text: 'Show/Hide Labels',
+        handler: 'toggleLabels'
+      }, {
+        text: 'Align/Realign Labels',
+        handler: function handler(tree) {
+          tree.alignLabels = !tree.alignLabels;
+        }
+      }, {
+        text: 'Show/Hide Internal Labels',
+        handler: function handler(tree) {
+          tree.showInternalNodeLabels = !tree.showInternalNodeLabels;
+          tree.showBranchLengthLabels = !tree.showBranchLengthLabels;
+          tree.draw();
+        }
+      }], [{
+        text: 'Fit in Panel',
+        handler: function handler(tree) {
+          tree.fitInPanel();
+        }
+      }, {
+        text: 'Redraw Original Tree',
+        handler: 'redrawOriginalTree'
+      }, {
+        text: 'Expand All',
+        handler: function handler(tree) {
+          var _iteratorNormalCompletion9 = true;
+          var _didIteratorError9 = false;
+          var _iteratorError9 = undefined;
+
+          try {
+            for (var _iterator9 = Object.keys(tree.branches)[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+              var branchId = _step9.value;
+
+              tree.branches[branchId].expand();
+            }
+          } catch (err) {
+            _didIteratorError9 = true;
+            _iteratorError9 = err;
+          } finally {
+            try {
+              if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                _iterator9.return();
+              }
+            } finally {
+              if (_didIteratorError9) {
+                throw _iteratorError9;
+              }
+            }
+          }
+        }
+      }], [{
+        text: 'Export Leaf Labels',
+        element: createLeafLabelsLink
+      }, {
+        text: 'Export Selected Labels',
+        element: createSelectedLabelsLink
+      }, {
+        text: 'Export as Newick File',
+        element: createNewickLink
+      }, {
+        text: 'Export as Image',
+        element: createImageLink
+      }], [{
+        element: createAboutLink
+      }]];
+
+      var DEFAULT_BRANCH_MENU_ITEMS = exports.DEFAULT_BRANCH_MENU_ITEMS = [[{
+        text: 'Collapse/Expand Subtree',
+        handler: function handler(branch) {
+          branch.toggleCollapsed();
+          branch.tree.draw(); // some browsers do not fire mousemove after clicking
+        }
+      }, {
+        text: 'Invert Subtree',
+        handler: 'rotate'
+      }], [{
+        text: 'Redraw Subtree',
+        handler: 'redrawTreeFromBranch'
+      }], [{
+        text: 'Export Subtree Leaf Labels',
+        element: createLeafLabelsLink
+      }, {
+        text: 'Export Subtree as Newick File',
+        element: createNewickLink
+      }], [{
+        element: createAboutLink
+      }]];
+
+      var DEFAULT_FILENAMES = {
+        image: 'phylocanvas.png',
+        leafLabels: 'phylocanvas-leaf-labels.txt',
+        newick: 'phylocanvas.nwk'
+      };
+
+      /**
+       * The menu that is shown when the PhyloCanvas widget is right-clicked
+       *
+       * @constructor
+       * @memberOf PhyloCanvas
+       * @extends Tooltip
+       */
+
+      var ContextMenu = function (_Tooltip) {
+        _inherits(ContextMenu, _Tooltip);
+
+        function ContextMenu(tree) {
+          var _ref6 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+              _ref6$menuItems = _ref6.menuItems,
+              menuItems = _ref6$menuItems === undefined ? DEFAULT_MENU_ITEMS : _ref6$menuItems,
+              _ref6$branchMenuItems = _ref6.branchMenuItems,
+              branchMenuItems = _ref6$branchMenuItems === undefined ? DEFAULT_BRANCH_MENU_ITEMS : _ref6$branchMenuItems,
+              _ref6$unstyled = _ref6.unstyled,
+              unstyled = _ref6$unstyled === undefined ? false : _ref6$unstyled,
+              _ref6$className = _ref6.className,
+              className = _ref6$className === undefined ? '' : _ref6$className,
+              parent = _ref6.parent,
+              _ref6$filenames = _ref6.filenames,
+              filenames = _ref6$filenames === undefined ? DEFAULT_FILENAMES : _ref6$filenames;
+
+          _classCallCheck(this, ContextMenu);
+
+          var _this = _possibleConstructorReturn(this, (ContextMenu.__proto__ || Object.getPrototypeOf(ContextMenu)).call(this, tree, {
+            className: ('phylocanvas-context-menu ' + className).trim(),
+            element: document.createElement('ul'),
+            parent: parent
+          }));
+
+          _this.menuItems = menuItems;
+          _this.branchMenuItems = branchMenuItems;
+          _this.filenames = filenames;
+
+          // if (!unstyled) {
+          //   require('./style.css');
+          // }
+
+          _this.element.addEventListener('click', function (event) {
+            return event.stopPropagation();
+          });
+          return _this;
+        }
+
+        _createClass(ContextMenu, [{
+          key: 'createSublist',
+          value: function createSublist(menuItems, node) {
+            var sublist = document.createElement('ul');
+            var _iteratorNormalCompletion10 = true;
+            var _didIteratorError10 = false;
+            var _iteratorError10 = undefined;
+
+            try {
+              for (var _iterator10 = menuItems[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+                var menuItem = _step10.value;
+
+                var listElement = null;
+
+                if (menuItem.element) {
+                  var menuItemContent = menuItem.element(this, node);
+                  if (menuItemContent) {
+                    listElement = document.createElement('li');
+                    listElement.appendChild(menuItemContent);
+                  }
+                } else {
+                  listElement = document.createElement('li');
+                  listElement.appendChild(document.createTextNode(menuItem.text));
+                  listElement.addEventListener('click', createHandler(node || this.tree, menuItem.handler));
+                }
+
+                if (listElement) {
+                  listElement.addEventListener('click', createHandler(this, 'close'));
+                  listElement.addEventListener('contextmenu', preventDefault);
+
+                  sublist.appendChild(listElement);
+                }
+              }
+            } catch (err) {
+              _didIteratorError10 = true;
+              _iteratorError10 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion10 && _iterator10.return) {
+                  _iterator10.return();
+                }
+              } finally {
+                if (_didIteratorError10) {
+                  throw _iteratorError10;
+                }
+              }
+            }
+
+            if (sublist.hasChildNodes()) {
+              this.element.appendChild(sublist);
+            }
+          }
+        }, {
+          key: 'createContent',
+          value: function createContent(node) {
+            var menuItems = node && node.children.length ? this.branchMenuItems : this.menuItems;
+            var _iteratorNormalCompletion11 = true;
+            var _didIteratorError11 = false;
+            var _iteratorError11 = undefined;
+
+            try {
+              for (var _iterator11 = menuItems[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                var subgroup = _step11.value;
+
+                this.createSublist(subgroup, node);
+              }
+            } catch (err) {
+              _didIteratorError11 = true;
+              _iteratorError11 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion11 && _iterator11.return) {
+                  _iterator11.return();
+                }
+              } finally {
+                if (_didIteratorError11) {
+                  throw _iteratorError11;
+                }
+              }
+            }
+
+            document.body.addEventListener('click', createHandler(this, 'close'));
+          }
+        }, {
+          key: 'cleanup',
+          value: function cleanup() {
+            this.element.parentNode.removeChild(this.element);
+          }
+        }]);
+
+        return ContextMenu;
+      }(_phylocanvas.Tooltip);
+
+      function handleContextmenu(event) {
+        if (event.button === 2) {
+          event.preventDefault();
+          var node = this.getNodeAtMousePosition(event);
+          this.contextMenu.open(event.clientX, event.clientY, node && node.interactive ? node : null);
+          this.contextMenu.closed = false;
+          this.tooltip.close();
+        }
+      }
+
+      function onCleanup(delegate) {
+        this.contextMenu.cleanup();
+        delegate.call(this);
+      }
+
+      var _utils$dom = _phylocanvas.utils.dom,
+          addClass = _utils$dom.addClass,
+          removeClass = _utils$dom.removeClass;
+      var _utils$events2 = _phylocanvas.utils.events,
+          fireEvent = _utils$events2.fireEvent,
+          addEvent = _utils$events2.addEvent,
+          killEvent = _utils$events2.killEvent;
+
+
+      var snapshotClass = 'phylocanvas-history-snapshot';
+      var snapshotSelectedClass = snapshotClass + '--selected';
+
+      var History = function () {
+        function History(tree, _ref7) {
+          var _this2 = this;
+
+          var _ref7$parent = _ref7.parent,
+              parent = _ref7$parent === undefined ? tree.containerElement : _ref7$parent,
+              _ref7$zIndex = _ref7.zIndex,
+              zIndex = _ref7$zIndex === undefined ? 1 : _ref7$zIndex;
+
+          _classCallCheck(this, History);
+
+          this.tree = tree;
+          this.snapshots = [];
+
+          this.isOpen = false;
+          this.parent = parent;
+          this.buttonClickHandler = this.toggle.bind(this);
+          this.container = this.createElements(parent);
+          this.container.style.zIndex = zIndex;
+
+          this.tree.addListener('subtree', function (_ref8) {
+            var node = _ref8.node;
+            return _this2.addSnapshot(node);
+          });
+          this.tree.addListener('loaded', function () {
+            return _this2.addSnapshot(_this2.tree.root.id);
+          });
+
+          this.tree.addListener('typechanged', function () {
+            return _this2.addSnapshot(_this2.tree.root.id);
+          });
+        }
+
+        _createClass(History, [{
+          key: 'toggle',
+          value: function toggle() {
+            this.isOpen = !this.isOpen;
+
+            (this.isOpen ? addClass : removeClass)(this.container, 'phylocanvas-history--open');
+
+            this.parent[(this.isOpen ? 'add' : 'remove') + 'EventListener']('click', this.buttonClickHandler);
+
+            fireEvent(this.tree.containerElement, 'historytoggle', { isOpen: this.isOpen });
+          }
+        }, {
+          key: 'createElements',
+          value: function createElements(parentElement) {
+            var container = document.createElement('div');
+            container.className = 'phylocanvas-history';
+            addEvent(container, 'click', killEvent);
+            addEvent(container, 'contextmenu', killEvent);
+
+            var button = document.createElement('button');
+            button.className = 'phylocanvas-history-button';
+            button.innerHTML = 'History';
+            addEvent(button, 'click', this.buttonClickHandler);
+            container.appendChild(button);
+            this.button = button;
+
+            var snapshotList = document.createElement('ul');
+            snapshotList.className = 'phylocanvas-history-snapshots';
+            container.appendChild(snapshotList);
+            this.snapshotList = snapshotList;
+
+            parentElement.appendChild(container);
+            return container;
+          }
+        }, {
+          key: 'addSnapshot',
+          value: function addSnapshot(id) {
+            if (!id) return;
+
+            var treetype = this.tree.treeType;
+            var historyAlreadyPresent = false;
+
+            this.snapshots.forEach(function (element) {
+              removeClass(element, snapshotSelectedClass);
+              if (element.getAttribute('data-tree-root') === id && element.getAttribute('data-tree-type') === treetype) {
+                historyAlreadyPresent = true;
+                addClass(element, snapshotSelectedClass);
+              }
+            });
+
+            if (historyAlreadyPresent) {
+              return;
+            }
+
+            var url = this.tree.getPngUrl();
+            var listElement = document.createElement('li');
+            listElement.className = snapshotClass + ' ' + snapshotSelectedClass;
+            listElement.setAttribute('data-tree-root', id);
+            listElement.setAttribute('data-tree-type', this.tree.treeType);
+            listElement.className = snapshotClass + ' ' + snapshotSelectedClass;
+
+            var thumbnail = document.createElement('img');
+            thumbnail.src = url;
+
+            this.snapshots.push(listElement);
+
+            listElement.appendChild(thumbnail);
+            this.snapshotList.appendChild(listElement);
+
+            addEvent(listElement, 'click', this.goBackTo.bind(this, listElement));
+          }
+        }, {
+          key: 'clear',
+          value: function clear() {
+            for (var i = this.snapshots.length; i--;) {
+              this.snapshotList.removeChild(this.snapshots[i]);
+            }
+            this.snapshots.length = 0;
+          }
+        }, {
+          key: 'goBackTo',
+          value: function goBackTo(snapshot) {
+            var id = snapshot.getAttribute('data-tree-root');
+            this.tree.setTreeType(snapshot.getAttribute('data-tree-type'), true);
+            this.tree.redrawFromBranch(this.tree.originalTree.branches[id]);
+            this.toggle();
+          }
+        }]);
+
+        return History;
+      }();
+
+    /***/ }),
+    /* 1 */
+    /***/ (function(module, exports) {
+
+      module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
+
+    /***/ })
+    /******/ ])
+    });
+    ;
+  </script>
+  <script type="application/javascript">
+
+    var DEFAULT_GRID_COL_OPTS = {
+      filter: true,
+      sortable: true,
+      resizable: true
+    };
+    var cols = Object.keys(Object.values(genomeMetadata)[0]);
+    cols.unshift('genome');
+    var columnDefs = cols.map(function(x) {
+      return Object.assign(JSON.parse(JSON.stringify(DEFAULT_GRID_COL_OPTS)), {
+        headerName: _.capitalize(x).replace(/_+/g, " "), 
+        field: x,
+      });
+    });
+
+    var rowData = Object.keys(genomeMetadata).map(function(x) {
+      var record = genomeMetadata[x]
+      return cols.reduce(function(acc, col) {
+        if (record.hasOwnProperty(col)) {
+          acc[col] = record[col];
+        }
+        return acc;
+      }, {genome: x});
+    });
+
+    function getRowData(genomeMetadata, genomes) {
+      if (genomes === null) {
+        genomes = Object.keys(genomeMetadata)
+      }
+      return genomes.map(function(x) {
+        var record = genomeMetadata[x]
+        return cols.reduce(function(acc, col) {
+          if (record.hasOwnProperty(col)) {
+            acc[col] = record[col];
+          }
+          return acc;
+        }, {genome: x});
+      });
+    }
+    
+    // let the grid know which columns and what data to use
+    var gridOptions = {
+      columnDefs: columnDefs,
+      rowData: rowData,
+      rowSelection: 'multiple'
+    };
+
+    var $grid = document.getElementById('metadata-grid')
+
+    var grid = new agGrid.Grid($grid, gridOptions);
+
+    function newElement(htmlString) {
+      var frag = document.createRange().createContextualFragment(htmlString);
+      return frag.firstChild;
+    }
+
+    var $treePlot = document.getElementById('tree-plot');
+
+    var Phylocanvas = window.Phylocanvas;
+    Phylocanvas.default.plugin(metadataPlugin.default);
+    var tree = Phylocanvas.default.createTree('tree-plot', {
+      padding: 0,
+      metadata: {
+        padding: 5,
+        headerAngle: 0,
+        blockLength: 20,
+      },
+      history: {
+        parent: $treePlot,
+        zIndex: 1,
+      },
+      baseNodeSize: 0,
+    });
+
+    function updateHeight(){
+      var BOTTOM_PADDING = 20;
+      var top = $treePlot.getBoundingClientRect().top;
+      var height = window.innerHeight - top - BOTTOM_PADDING;
+      if (height < 300) {
+        height = 300;
+      }
+      $treePlot.style.height = height + 'px';
+      tree.resizeToContainer();
+      setBranchScale(document.getElementById("branchScaleInput").value);
+    }
+    window.addEventListener("resize", updateHeight);
+
+    document.getElementById('metadataBlockLengthInput').addEventListener('change', function(e){
+      const value = Number(e.target.value);
+      tree.metadata.blockLength = value;
+      tree.draw();
+    });
+
+    document.getElementById('headerAngleRotationInput').addEventListener('change', function(e){
+      const value = Number(e.target.value);
+      tree.metadata.headerAngle = value;
+      tree.draw();
+    });
+
+    function setBranchScale(value) {
+      tree.setBranchScale(value);
+      tree.currentBranchScale = value;
+      tree.fitInPanel();
+      tree.offsetx = 0;
+      tree.draw();
+    }
+
+    document.getElementById("branchScaleInput").addEventListener('change', function(e){
+      var value = Number(e.target.value);
+      setBranchScale(value);
+    });
+
+    document.getElementById('showMetadataLabelsInput').addEventListener('change', function(){
+      tree.metadata.showLabels = !tree.metadata.showLabels;
+      var $input = document.getElementById('headerAngleRotationInput');
+      if (tree.metadata.showLabels) {
+        $input.value = tree.metadata.headerAngle = 0;
+      } else {
+        $input.value = tree.metadata.headerAngle = 45;
+      }
+      tree.draw();
+    });
+
+    document.getElementById('findLeavesInput').addEventListener('keyup', function(e) {
+      var element = e.target;
+      var value = e.target.value;
+      if (value === '') {
+        element.classList.remove('is-valid');
+        element.classList.remove('is-invalid');
+        return;
+      }
+      var regex;
+      try {
+        regex = RegExp('^' + value)
+      } catch {
+        return;
+      }
+      foundLeaves = tree.findLeaves(regex);
+      if (foundLeaves.length === 0) {
+        element.classList.add('is-invalid');
+        return;
+      }
+      element.classList.remove('is-invalid');
+      element.classList.add('is-valid');
+      tree.leaves.forEach(function(x) { x.selected = false; });
+      foundLeaves.forEach(function(x) { 
+        x.selected = true;
+        x.highlighted = true;
+        setTimeout(function() {
+          x.highlighted = false;
+        }, 1000);
+      });
+      tree.fitInPanel(foundLeaves);
+      tree.draw();
+      sel_leaves = foundLeaves.reduce(function(acc, x) {
+        acc[x.id] = 1; 
+        return acc; 
+      }, {});
+      console.log('sel_leaves', sel_leaves)
+      console.log('grid', grid)
+      grid.context.beans.gridApi.beanInstance.forEachNode(function(x) {
+        if (sel_leaves.hasOwnProperty(x.data.genome)) { 
+          console.log(x);
+          x.selected = true; 
+        } else { 
+          x.selected = false; 
+        }
+      });
+      grid.context.beans.gridApi.beanInstance.redrawRows();
+    });
+
+    tree.on('error', function(event){ throw event.error; });
+
+    var vals = Object.values(genomeMetadata);
+    var fieldValueCounts = vals.reduce(function(acc, mdRecord) {
+      Object.keys(mdRecord).reduce(function(acc2, fieldName) {
+        var mdVal = mdRecord[fieldName];
+        if (mdRecord[fieldName] !== null) {
+          if (acc2.hasOwnProperty(fieldName)) {
+            if (acc2[fieldName].hasOwnProperty(mdVal)) {
+              acc2[fieldName][mdVal] += 1;
+            } else {
+              acc2[fieldName][mdVal]=1;
+            }
+          } else {
+            acc2[fieldName] = {};
+            acc2[fieldName][mdVal]=1;
+          }
+        };
+        return acc2;
+      }, acc); 
+      return acc; 
+    }, {});
+
+
+    var fieldValueColour = Object.keys(fieldValueCounts).reduce(function(acc, fieldName) {
+      if (!acc.hasOwnProperty(fieldName)) {
+        acc[fieldName] = {};
+      };
+      var valueCounts = fieldValueCounts[fieldName];
+      var isAllNumbers = Object.keys(valueCounts).reduce(function(acc, x) {
+        return !isNaN(Number(x)) && acc;
+      }, true);
+      var sorted_keys;
+      if (isAllNumbers) {
+        sorted_keys = Object.keys(valueCounts).map(Number).sort();
+      } else {
+        sorted_keys = Object.keys(valueCounts).sort(function (a, b) {
+          return valueCounts[a] < valueCounts[b];
+        });
+      }
+      var n = sorted_keys.length;
+      var colours;
+      if (isAllNumbers) {
+        colours = chroma.scale('Blues').colors(n);
+      } else {
+        if (n > 12) {
+          colours = chroma.scale('Spectral').colors(n);
+        } else if (n > 9) {
+          colours = chroma.brewer.Set3;
+        } else {
+          colours = chroma.brewer.Pastel1;
+        }
+      }
+      for (var i = 0; i < sorted_keys.length; i++) {
+        acc[fieldName][sorted_keys[i]] = colours[i];
+      }
+      return acc; 
+    }, {});
+
+    tree.on('beforeFirstDraw', function() {
+      for (var leaf of tree.leaves) {
+        if (!leaf.data) leaf.data = {};
+        var gmd = genomeMetadata[leaf.id];
+        for (var colName of Object.keys(gmd)) {
+          var val = gmd[colName];
+          var isValNull = val === null;
+          leaf.data[colName] = {
+            label: isValNull ? "" : val + "",
+            colour:  isValNull ? '#FFF' : fieldValueColour[colName][val],
+          };
+        }
+      }
+    });
+
+    tree.on('subtree', function(x){
+      setBranchScale(document.getElementById("branchScaleInput").value);
+      var subtreeNodes = tree.branches[x.node].tree.leaves.map((node) => node.id)
+      var newRowData = getRowData(genomeMetadata, subtreeNodes)
+      grid.context.beans.gridApi.beanInstance.setRowData(newRowData)
+    });
+
+    tree.setTreeType('rectangular');
+    tree.alignLabels = true;
+
+    tree.load(newick_string);
+    window.tree = tree;
+    updateHeight();
+    setBranchScale(0.5);
+  </script>
+</body>
+</html>
