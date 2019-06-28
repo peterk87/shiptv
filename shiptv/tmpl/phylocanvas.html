@@ -257,6 +257,23 @@
                          value="true">
                   <label class="custom-control-label" for="showMetadataLabelsInput">Show Metadata Labels</label>
                 </div>
+                <div class="custom-control custom-switch">
+                  <input type="checkbox"
+                         id="highlightLowSupportBranchesInput"
+                         class="custom-control-input"
+                         checked
+                         value="true">
+                  <label class="custom-control-label" for="highlightLowSupportBranchesInput">Highlight Low Support Branches</label>
+                </div>
+                <div class="form-group">
+                  <label for="lowSupportInput">Low Support Threshold</label>
+                  <input type="number"
+                         id="lowSupportInput"
+                         class="form-control"
+                         min="0"
+                         value="95"
+                         step="1">
+                </div>
               </div>
             </div>
           </div>
@@ -1746,6 +1763,49 @@
       grid.context.beans.gridApi.beanInstance.redrawRows();
     });
 
+    function highlightLowSupportBranches(supportThreshold, lowSupportColour) {
+      if (supportThreshold === undefined || supportThreshold === null) {
+        supportThreshold = 95; // 95%
+      }
+      if (lowSupportColour === undefined || lowSupportColour === null) {
+        lowSupportColour = '#f00'; // red
+      }
+      for (let nodeId in tree.branches) {
+        if (tree.branches.hasOwnProperty(nodeId)) { 
+          let node = tree.branches[nodeId]; 
+          if (node.children.length === 0) { 
+            continue;
+          }
+          let bs = parseInt(node.label); 
+          if (bs < supportThreshold) {
+            node.colour = lowSupportColour;
+          } else {
+            node.colour = '#000'; // black
+          }
+        }
+      }
+      tree.draw()
+    }
+
+    var lowSupportInput = document.getElementById('lowSupportInput');
+    var highlightLowSupportBranchesInput = document.getElementById('highlightLowSupportBranchesInput');
+
+    lowSupportInput.addEventListener('change', function() {
+      if (highlightLowSupportBranchesInput.checked) {
+        highlightLowSupportBranches(parseInt(lowSupportInput.value))
+      }
+    })
+
+    highlightLowSupportBranchesInput.addEventListener('change', function(e) {
+      const element = e.target;
+      console.log('highlightLowSupportBranchesInput', element, e, element.value)
+      if (element.checked) {
+        highlightLowSupportBranches(parseInt(lowSupportInput.value))
+      } else {
+        highlightLowSupportBranches(Infinity, '#000')
+      }
+    });
+
     tree.on('error', function(event){ throw event.error; });
 
     var vals = Object.values(genomeMetadata);
@@ -1834,6 +1894,7 @@
     window.tree = tree;
     updateHeight();
     setBranchScale(0.5);
+    highlightLowSupportBranches()
   </script>
 </body>
 </html>
