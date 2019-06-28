@@ -62,10 +62,10 @@ def fix_host_metadata(df: pd.DataFrame) -> None:
 
 
 def fix_collection_date(df_metadata):
-    years = [x.year if not pd.isnull(x) else x for x in pd.to_datetime(df_metadata.collection_date)]
-    df_metadata.collection_date = pd.to_datetime(df_metadata.collection_date)
+    dates = pd.to_datetime(df_metadata.collection_date, errors='coerce')
+    years = [x.year if not pd.isnull(x) else None for x in dates]
     df_metadata['collection_year'] = years
-    df_metadata.collection_date = [str(x).split()[0] if not pd.isnull(x) else None for x in df_metadata.collection_date]
+    df_metadata.collection_date = [str(x).split()[0] if not pd.isnull(x) else None for x in dates]
 
 
 def fix_country_region(df):
