@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
 """Main module."""
-import jinja2
 import logging
+from typing import List, Dict, Optional
+
+import jinja2
 import pandas as pd
-import pkg_resources
+from pkg_resources import resource_filename
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from ete3 import Tree
-from typing import List, Dict, Optional
 
-html_template = pkg_resources.resource_filename('shiptv', 'tmpl/phylocanvas.html')
+html_template = resource_filename('shiptv', 'tmpl/phylocanvas.html')
 
 
 def read_lines(filepath: str) -> List[str]:
@@ -24,20 +25,23 @@ def read_lines(filepath: str) -> List[str]:
 
 def genbank_source_metadata(rec: SeqRecord) -> Dict[str, str]:
     """Get source feature metadata dictionary for a SeqRecord"""
-    return {k: v[0] if v is not None and len(v) == 1 else v for k, v in rec.features[0].qualifiers.items()}
+    return {k: v[0] if v is not None and len(v) == 1 else v
+            for k, v in rec.features[0].qualifiers.items()}
 
 
 def genbank_metadata(genbank: str) -> pd.DataFrame:
     """Parse genome metadata from Genbank file into Pandas DataFrame.
     """
     id_to_rec = {r.id: r for r in SeqIO.parse(genbank, 'genbank')}
-    df_metadata = pd.DataFrame({gid: genbank_source_metadata(rec) for gid, rec in id_to_rec.items()}).transpose()
+    df_metadata = pd.DataFrame({gid: genbank_source_metadata(rec)
+                                for gid, rec in id_to_rec.items()}).transpose()
     if 'isolate' in df_metadata and 'strain' in df_metadata:
-        df_metadata['strain'] = df_metadata['isolate'].combine_first(df_metadata['strain'])
+        df_metadata['strain'] = df_metadata['isolate']\
+            .combine_first(df_metadata['strain'])
     return df_metadata
 
 
-def fix_host_metadata(df_metadata: pd.DataFrame) -> None:
+def fix_host_metadata(df: pd.DataFrame) -> None:
     cattle_syn = '''
     Bos taurus
     bovine
@@ -45,16 +49,16 @@ def fix_host_metadata(df_metadata: pd.DataFrame) -> None:
     Ankole cow
     Cattle
     '''.strip().split('\n')
-    df_metadata.host[df_metadata.host.isin(cattle_syn)] = 'cattle'
+    df.host[df.host.isin(cattle_syn)] = 'cattle'
     sheep_syn = '''
     ovine
     '''.strip().split('\n')
-    df_metadata.host[df_metadata.host.isin(sheep_syn)] = 'sheep'
+    df.host[df.host.isin(sheep_syn)] = 'sheep'
     pig_syn = '''
     sus scrofa domesticus
     swine
     porcine'''.strip().split('\n')
-    df_metadata.host[df_metadata.host.isin(pig_syn)] = 'pig'
+    df.host[df.host.isin(pig_syn)] = 'pig'
 
 
 def fix_collection_date(df_metadata):
@@ -64,30 +68,30 @@ def fix_collection_date(df_metadata):
     df_metadata.collection_date = [str(x).split()[0] if not pd.isnull(x) else None for x in dates]
 
 
-def fix_country_region(df_metadata):
-    df_metadata['region'] = df_metadata.country.str.extract(r'.*:\s*(.*)\s*')
-    df_metadata['country'] = df_metadata.country.str.extract(r'([^:]+)(:\s*.*\s*)?')[0]
+def fix_country_region(df):
+    df['region'] = df.country.str.extract(r'.*:\s*(.*)\s*')
+    df['country'] = df.country.str.extract(r'([^:]+)(:\s*.*\s*)?')[0]
 
 
-def add_user_metadata(df_metadata, user_sample_metadata):
+def add_user_metadata(df: pd.DataFrame, user_sample_metadata: str) -> None:
     df_user_metadata = pd.read_csv(user_sample_metadata, sep='\t', index_col=0)
     logging.info(f'Read user sample metadata table from '
                  f'"{user_sample_metadata}" with '
                  f'{df_user_metadata.shape[0]} rows and columns: '
                  f'{";".join(df_user_metadata.columns)}')
     for user_column in df_user_metadata.columns:
-        if user_column not in df_metadata.columns:
-            df_metadata[user_column] = None
+        if user_column not in df.columns:
+            df[user_column] = None
     for idx, row in df_user_metadata.iterrows():
-        if idx not in df_metadata.index:
+        if idx not in df.index:
             continue
-        original_row = df_metadata.loc[idx, :]
+        original_row = df.loc[idx, :]
         row_dict = original_row[~pd.isnull(original_row)].to_dict()
         row_dict.update(row.to_dict())
-        df_metadata.loc[idx, :] = pd.Series(row_dict)
+        df.loc[idx, :] = pd.Series(row_dict)
 
 
-def parse_tree(newick):
+def parse_tree(newick: str) -> Tree:
     # Read phylogenetic tree newick file using ete3
     tree = Tree(newick=newick)
     # Calculate the midpoint node
@@ -97,7 +101,9 @@ def parse_tree(newick):
     return tree
 
 
-def write_html_tree(df_metadata, output_html, tree):
+def write_html_tree(df_metadata: pd.DataFrame,
+                    output_html: str,
+                    tree: Tree) -> None:
     with open(html_template) as fh, open(output_html, 'w') as fout:
         tmpl = jinja2.Template(fh.read())
         fout.write(tmpl.render(newick_string=tree.write(),
@@ -183,3 +189,19 @@ def try_fix_host_metadata(df_metadata: pd.DataFrame) -> None:
                      f'to use more consistent host type categories. '
                      f'Before: {before_host_types} host types. '
                      f'After: {after_host_types} host types.')
+
+
+def collapse_branches(tree: Tree, collapse_support: float) -> None:
+    """Collapse internal branches below support threshold
+
+    Note:
+        This function modifies the supplied `tree` object.
+
+    Args:
+        tree: ete3 Tree object
+        collapse_support: Support threshold
+    """
+    for node in tree.traverse():
+        if not node.is_leaf() and not node.is_root():
+            if node.support < collapse_support:
+                node.delete()
