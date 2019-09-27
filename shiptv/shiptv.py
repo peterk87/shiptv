@@ -141,7 +141,9 @@ def get_metadata_fields(genbank_metadata_fields):
                             'serotype',
                             'note',
                             'country',
+                            'region',
                             'collection_date',
+                            'collection_year',
                             'host',
                             'isolation_source']
     return metadata_columns

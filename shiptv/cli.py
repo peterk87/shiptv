@@ -5,6 +5,7 @@ import sys
 import logging
 
 import click
+import pandas as pd
 
 from shiptv.shiptv import genbank_metadata, add_user_metadata, parse_tree, \
     write_html_tree, parse_leaf_list, prune_tree, reorder_metadata_fields, \
@@ -15,7 +16,7 @@ from shiptv.shiptv import genbank_metadata, add_user_metadata, parse_tree, \
 
 @click.command()
 @click.option('-r', '--ref-genomes-genbank',
-              required=True,
+              required=False,
               type=click.Path(exists=True, dir_okay=False),
               help='Reference genome sequences Genbank file')
 @click.option('-n', '--newick',
@@ -55,7 +56,7 @@ from shiptv.shiptv import genbank_metadata, add_user_metadata, parse_tree, \
               help='Optional list of fields in order to output in metadata '
                    'table and HTML tree visualization. One field per line.')
 @click.option('--dont-fix-metadata', is_flag=True,
-              help='Do not automatically fix metadata')
+              help='Do not automatically fix metadata (only on Genbank file metadata)')
 @click.option('-C', '--collapse-support', default=-1, type=float,
               help='Collapse internal branches below specified bootstrap '
                    'support value (default -1 for no collapsing)')
@@ -72,8 +73,8 @@ def main(ref_genomes_genbank,
          collapse_support):
     """Create HTML tree visualization with metadata.
 
-    The metadata for reference genomes is extracted from the specified Genbank
-    file.
+    The metadata for reference genomes can be extracted from the specified
+    Genbank file.
 
     Any leaf names that are present in the tree but not present in the Genbank
     file are assumed to be user samples and are flagged as such in the
@@ -89,25 +90,29 @@ def main(ref_genomes_genbank,
         collapse_branches(tree, collapse_support)
     if output_newick:
         tree.write(outfile=output_newick)
-
-    df_metadata = genbank_metadata(ref_genomes_genbank)
-    logging.info(f'Parsed metadata from "{ref_genomes_genbank}" with columns '
-                 f'"{";".join(df_metadata.columns)}')
-
-    metadata_fields = get_metadata_fields(genbank_metadata_fields)
-    # only use columns present in the reference genome metadata
-    metadata_fields = [x for x in metadata_fields if
-                       x in list(df_metadata.columns)]
-    logging.info(f'Metadata table fields: {";".join(metadata_fields)}')
+    if ref_genomes_genbank:
+        df_metadata = genbank_metadata(ref_genomes_genbank)
+        logging.info(f'Parsed metadata from "{ref_genomes_genbank}" with columns '
+                     f'"{";".join(df_metadata.columns)}')
+        if dont_fix_metadata:
+            logging.warning('Not fixing any genome metadata.')
+        else:
+            try_fix_serotype_metadata(df_metadata)
+            try_fix_country_metadata(df_metadata)
+            try_fix_collection_date_metadata(df_metadata)
+            try_fix_host_metadata(df_metadata)
+        metadata_fields = get_metadata_fields(genbank_metadata_fields)
+        # only use columns present in the reference genome metadata
+        metadata_fields = [x for x in metadata_fields if
+                           x in list(df_metadata.columns)]
+        logging.info(f'Metadata table fields: {";".join(metadata_fields)}')
+        
+    else:
+        df_metadata = pd.DataFrame(index=tree.get_leaf_names())
+        metadata_fields = []
     df_metadata = highlight_user_samples(df_metadata, metadata_fields,
                                          tree.get_leaf_names())
-    if dont_fix_metadata:
-        logging.warning('Not fixing any genome metadata.')
-    else:
-        try_fix_serotype_metadata(df_metadata)
-        try_fix_country_metadata(df_metadata)
-        try_fix_collection_date_metadata(df_metadata)
-        try_fix_host_metadata(df_metadata)
+    
     df_metadata = prune_tree(df_metadata, parse_leaf_list(leaflist), tree)
     if user_sample_metadata:
         add_user_metadata(df_metadata, user_sample_metadata)

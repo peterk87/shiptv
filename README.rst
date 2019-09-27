@@ -26,7 +26,11 @@ Generate a standalone HTML file with an interactive phylogenetic tree using Phyl
 Features
 --------
 
-* TODO
+* Interactively view your tree in the browser with metadata highlighted beside your tree using PhyloCanvas.
+* Automatically retrieve metadata from a GenBank file!
+* Visualize your own metadata! Provide a tab-delimited table as input with ``--user-sample-metadata /path/to/your-table.tsv``
+* Highlight branches with low support in the browser.
+* Collapse branches with low support (e.g. ``-C 95`` for IQ-TREE trees with UFBoot ``-bb 1000`` to collapse branches with less than 95% support). 
 
 Usage
 -----
