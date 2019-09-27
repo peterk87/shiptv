@@ -1838,11 +1838,16 @@
       var isAllNumbers = Object.keys(valueCounts).reduce(function(acc, x) {
         return !isNaN(Number(x)) && acc;
       }, true);
+      var isAllDates = Object.keys(valueCounts).reduce(function(acc, x) {
+        return !isNaN(Date.parse(x)) && acc;
+      }, true);
       var sorted_keys;
+      var map_new_to_old = {};
       if (isAllNumbers) {
-        sorted_keys = Object.keys(valueCounts).map(Number).sort(function (a, b) {
-          return a > b;
-        });
+        sorted_keys = Object.keys(valueCounts).map(Number).sort(function(a,b) { return a > b; });
+      } else if (isAllDates) {
+        map_new_to_old = Object.keys(valueCounts).reduce((acc, d) => {acc[Date.parse(d)] = d; return acc}, {});
+        sorted_keys = Object.keys(valueCounts).map(Date.parse).sort(function(a,b) { return a > b; });
       } else {
         sorted_keys = Object.keys(valueCounts).sort(function (a, b) {
           return valueCounts[a] < valueCounts[b];
@@ -1850,7 +1855,7 @@
       }
       var n = sorted_keys.length;
       var colours;
-      if (isAllNumbers) {
+      if (isAllNumbers || isAllDates) {
         colours = chroma.scale('Blues').domain([sorted_keys[0], sorted_keys[n-1]]);
       } else {
         if (n > 12) {
@@ -1864,6 +1869,8 @@
       for (var i = 0; i < sorted_keys.length; i++) {
         if (isAllNumbers) {
           acc[fieldName][sorted_keys[i]+""] = colours(sorted_keys[i]);
+        } else if (isAllDates) {
+          acc[fieldName][map_new_to_old[sorted_keys[i]]] = colours(sorted_keys[i]);
         } else {
           acc[fieldName][sorted_keys[i]] = colours[i];
         }
