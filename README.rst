@@ -22,6 +22,21 @@ Generate a standalone HTML file with an interactive phylogenetic tree using Phyl
 * Free software: Apache Software License 2.0
 * Documentation: https://shiptv.readthedocs.io.
 
+*See test shiptv HTML output here:*
+
+- `fmdv-5-shiptv.html`_
+
+
+**Phylogenetic tree of 5 FMDV genomes**
+
+.. image:: docs/images/fmdv5.png
+        :alt: Phylogenetic tree of 5 FMDV genomes
+
+**Phylogenetic tree of IAV HA gene sequences**
+
+.. image:: docs/images/iav-ha-gene-tree-scrn.png
+        :alt: Phylogenetic tree of IAV HA gene sequences
+
 
 Features
 --------
@@ -50,34 +65,38 @@ Help output
 
       Create HTML tree visualization with metadata.
 
-      The metadata for reference genomes is extracted from the specified Genbank
-      file.
+      The metadata for reference genomes can be extracted from the specified
+      Genbank file.
 
       Any leaf names that are present in the tree but not present in the Genbank
       file are assumed to be user samples and are flagged as such in the
       metadata table as "user_sample"="Yes".
 
     Options:
-      -r, --ref-genomes-genbank TEXT  Reference genome sequences Genbank file
-                                      [required]
-      -n, --newick TEXT               Phylogenetic tree Newick file  [required]
-      -o, --output-html TEXT          Output HTML tree path  [required]
-      -m, --output-metadata-table TEXT
+      -r, --ref-genomes-genbank FILE  Reference genome sequences Genbank file
+      -n, --newick FILE               Phylogenetic tree Newick file  [required]
+      -N, --output-newick PATH        Output Newick file
+      -o, --output-html PATH          Output HTML tree path  [required]
+      -m, --output-metadata-table PATH
                                       Output metadata table path  [required]
-      --leaflist TEXT                 Optional leaf names to select from
+      --leaflist PATH                 Optional leaf names to select from
                                       phylogenetic tree for pruned tree
                                       visualization. One leaf name per line.
-      --genbank-metadata-fields TEXT  Optional fields to extract from Genbank
+      --genbank-metadata-fields PATH  Optional fields to extract from Genbank
                                       source metadata. One field per line.
-      --user-sample-metadata TEXT     Optional tab-delimited metadata for user
+      --user-sample-metadata PATH     Optional tab-delimited metadata for user
                                       samples to join with metadata derived from
                                       reference genome sequences Genbank file.
                                       Sample IDs must be in the first column.
-      --metadata-fields-in-order TEXT
+      --metadata-fields-in-order PATH
                                       Optional list of fields in order to output
                                       in metadata table and HTML tree
                                       visualization. One field per line.
-      --dont-fix-metadata             Do not automatically fix metadata
+      --dont-fix-metadata             Do not automatically fix metadata (only on
+                                      Genbank file metadata)
+      -C, --collapse-support FLOAT    Collapse internal branches below specified
+                                      bootstrap support value (default -1 for no
+                                      collapsing)
       --help                          Show this message and exit.
 
 
@@ -94,5 +113,6 @@ Credits
 
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
+.. _`fmdv-5-shiptv.html`: docs/data/fmdv-5-shiptv.html
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
