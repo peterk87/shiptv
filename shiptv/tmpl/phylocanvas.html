@@ -1840,7 +1840,9 @@
       }, true);
       var sorted_keys;
       if (isAllNumbers) {
-        sorted_keys = Object.keys(valueCounts).map(Number).sort();
+        sorted_keys = Object.keys(valueCounts).map(Number).sort(function (a, b) {
+          return a > b;
+        });
       } else {
         sorted_keys = Object.keys(valueCounts).sort(function (a, b) {
           return valueCounts[a] < valueCounts[b];
@@ -1849,7 +1851,7 @@
       var n = sorted_keys.length;
       var colours;
       if (isAllNumbers) {
-        colours = chroma.scale('Blues').colors(n);
+        colours = chroma.scale('Blues').domain([sorted_keys[0], sorted_keys[n-1]]);
       } else {
         if (n > 12) {
           colours = chroma.scale('Spectral').colors(n);
@@ -1860,7 +1862,11 @@
         }
       }
       for (var i = 0; i < sorted_keys.length; i++) {
-        acc[fieldName][sorted_keys[i]] = colours[i];
+        if (isAllNumbers) {
+          acc[fieldName][sorted_keys[i]+""] = colours(sorted_keys[i]);
+        } else {
+          acc[fieldName][sorted_keys[i]] = colours[i];
+        }
       }
       return acc; 
     }, {});
