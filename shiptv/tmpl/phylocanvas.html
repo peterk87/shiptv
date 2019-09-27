@@ -1844,10 +1844,13 @@
       var sorted_keys;
       var map_new_to_old = {};
       if (isAllNumbers) {
-        sorted_keys = Object.keys(valueCounts).map(Number).sort(function(a,b) { return a > b; });
+        sorted_keys = Object.keys(valueCounts).map(Number).sort(function (a,b) { return a > b; });
       } else if (isAllDates) {
-        map_new_to_old = Object.keys(valueCounts).reduce((acc, d) => {acc[Date.parse(d)] = d; return acc}, {});
-        sorted_keys = Object.keys(valueCounts).map(Date.parse).sort(function(a,b) { return a > b; });
+        map_new_to_old = Object.keys(valueCounts).reduce(function (acc, d) {
+            acc[Date.parse(d)] = d;
+            return acc;
+        }, {});
+        sorted_keys = Object.keys(map_new_to_old).sort(function (a,b) { return a > b; });
       } else {
         sorted_keys = Object.keys(valueCounts).sort(function (a, b) {
           return valueCounts[a] < valueCounts[b];
