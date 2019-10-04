@@ -2,6 +2,14 @@
 History
 =======
 
+0.3.0 (2019-10-02)
+------------------
+
+* Fix rendering of numeric and ISO date metadata fields
+* Reference genomes Genbank now optional
+* Updated docs
+
+
 0.2.0 (2019-06-28)
 ------------------
 
