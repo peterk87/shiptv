@@ -12,11 +12,12 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-'Click>=6.0',
-'jinja2',
-'pandas',
-'ete3',
-'biopython'
+    'rich',
+    'typer',
+    'jinja2',
+    'pandas',
+    'ete3',
+    'biopython'
 ]
 
 setup_requirements = ['pytest-runner', ]
@@ -33,11 +34,13 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     description="Generate a standalone HTML file with an interactive phylogenetic tree using PhyloCanvas",
     entry_points={
         'console_scripts': [
-            'shiptv=shiptv.cli:main',
+            'shiptv=shiptv.cli:app',
         ],
     },
     install_requires=requirements,

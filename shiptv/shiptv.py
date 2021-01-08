@@ -2,6 +2,7 @@
 
 """Main module."""
 import logging
+from pathlib import Path
 from typing import List, Dict, Optional
 
 import jinja2
@@ -14,7 +15,7 @@ from ete3 import Tree
 html_template = resource_filename('shiptv', 'tmpl/phylocanvas.html')
 
 
-def read_lines(filepath: str) -> List[str]:
+def read_lines(filepath: Path) -> List[str]:
     out = []
     with open(filepath) as fh:
         for line in fh:
@@ -29,7 +30,7 @@ def genbank_source_metadata(rec: SeqRecord) -> Dict[str, str]:
             for k, v in rec.features[0].qualifiers.items()}
 
 
-def genbank_metadata(genbank: str) -> pd.DataFrame:
+def genbank_metadata(genbank: Path) -> pd.DataFrame:
     """Parse genome metadata from Genbank file into Pandas DataFrame.
     """
     id_to_rec = {r.id: r for r in SeqIO.parse(genbank, 'genbank')}
@@ -49,41 +50,43 @@ def fix_host_metadata(df: pd.DataFrame) -> None:
     Ankole cow
     Cattle
     '''.strip().split('\n')
-    df.host[df.host.isin(cattle_syn)] = 'cattle'
+    df.loc[df.host.isin(cattle_syn), 'host'] = 'cattle'
     sheep_syn = '''
     ovine
     '''.strip().split('\n')
-    df.host[df.host.isin(sheep_syn)] = 'sheep'
+    df.loc[df.host.isin(sheep_syn), 'host'] = 'sheep'
     pig_syn = '''
     sus scrofa domesticus
     swine
     porcine'''.strip().split('\n')
-    df.host[df.host.isin(pig_syn)] = 'pig'
+    df.loc[df.host.isin(pig_syn), 'host'] = 'pig'
 
 
-def fix_collection_date(df_metadata):
+def fix_collection_date(df_metadata: pd.DataFrame):
     dates = pd.to_datetime(df_metadata.collection_date, errors='coerce')
     years = [x.year if not pd.isnull(x) else None for x in dates]
     df_metadata['collection_year'] = years
     df_metadata.collection_date = [str(x).split()[0] if not pd.isnull(x) else None for x in dates]
 
 
-def fix_country_region(df):
+def fix_country_region(df: pd.DataFrame):
     df['region'] = df.country.str.extract(r'.*:\s*(.*)\s*')
     df['country'] = df.country.str.extract(r'([^:]+)(:\s*.*\s*)?')[0]
 
 
-def add_user_metadata(df: pd.DataFrame, user_sample_metadata: str) -> None:
-    df_user_metadata = pd.read_csv(user_sample_metadata, sep='\t', index_col=0)
+def add_user_metadata(df: pd.DataFrame, user_sample_metadata: Path) -> None:
+    df_user_metadata = pd.read_csv(user_sample_metadata, sep='\t', index_col=0, dtype='str')
+    logging.info(f'type of "{df_user_metadata.index.values[0]}" is {type(df_user_metadata.index.values[0])} '
+                 f'| dtype={df_user_metadata.index.dtype}')
     logging.info(f'Read user sample metadata table from '
                  f'"{user_sample_metadata}" with '
-                 f'{df_user_metadata.shape[0]} rows and columns: '
-                 f'{";".join(df_user_metadata.columns)}')
+                 f'{df_user_metadata.shape[0]} rows and columns: {list(df_user_metadata.columns)}')
     for user_column in df_user_metadata.columns:
         if user_column not in df.columns:
             df[user_column] = None
     for idx, row in df_user_metadata.iterrows():
         if idx not in df.index:
+            logging.info(f'idx "{idx}" not in df.index!')
             continue
         original_row = df.loc[idx, :]
         row_dict = original_row[~pd.isnull(original_row)].to_dict()
@@ -91,18 +94,28 @@ def add_user_metadata(df: pd.DataFrame, user_sample_metadata: str) -> None:
         df.loc[idx, :] = pd.Series(row_dict)
 
 
-def parse_tree(newick: str) -> Tree:
+def parse_tree(newick: Path, outgroup=None, midpoint_root=False, ladderize=False) -> Tree:
     # Read phylogenetic tree newick file using ete3
-    tree = Tree(newick=newick)
-    # Calculate the midpoint node
-    midpoint_node = tree.get_midpoint_outgroup()
-    # Set midpoint as output
-    tree.set_outgroup(midpoint_node)
+    tree = Tree(newick=str(newick.absolute()))
+    # setting user specified outgroup takes precedence over setting midpoint node as outgroup/tree root
+    if outgroup:
+        tree.set_outgroup(outgroup)
+    elif midpoint_root:
+        set_midpoint_root(tree)
+    # ladderize the tree for subjectively cleaner viz
+    if ladderize:
+        tree.ladderize(direction=1)
     return tree
 
 
+def set_midpoint_root(tree: Tree) -> None:
+    """Calculate and set the midpoint node as the outgroup/tree root"""
+    midpoint_node = tree.get_midpoint_outgroup()
+    tree.set_outgroup(midpoint_node)
+
+
 def write_html_tree(df_metadata: pd.DataFrame,
-                    output_html: str,
+                    output_html: Path,
                     tree: Tree) -> None:
     with open(html_template) as fh, open(output_html, 'w') as fout:
         tmpl = jinja2.Template(fh.read())
@@ -110,7 +123,7 @@ def write_html_tree(df_metadata: pd.DataFrame,
                                metadata_json_string=df_metadata.to_json(orient='index')))
 
 
-def parse_leaf_list(leaflist: str) -> Optional[List[str]]:
+def parse_leaf_list(leaflist: Path) -> Optional[List[str]]:
     if leaflist:
         leaflist_filepath = leaflist
         leaflist = read_lines(leaflist)
@@ -149,16 +162,21 @@ def get_metadata_fields(genbank_metadata_fields):
     return metadata_columns
 
 
-def highlight_user_samples(df_metadata: pd.DataFrame, metadata_columns: List[str], tree_leaf_names: List[str]) -> pd.DataFrame:
+def add_user_samples_field(df_metadata: pd.DataFrame, metadata_columns: List[str], tree_leaf_names: List[str]) -> pd.DataFrame:
     set_user_samples = set(tree_leaf_names) - set(df_metadata.index)
     logging.info(f'Found {len(set_user_samples)} user samples. {";".join(set_user_samples)}')
-    df_metadata = df_metadata.reindex(index=tree_leaf_names)
-    df_metadata = df_metadata.loc[:, metadata_columns]
+    df_metadata = subset_metadata_table(df_metadata, metadata_columns, tree_leaf_names)
     df_metadata['user_sample'] = None
     df_metadata.loc[set_user_samples, 'user_sample'] = 'Yes'
     logging.info(f'Highlighting {len(set_user_samples)} user samples with '
                  f'new field "user_sample" where user\'s samples have '
                  f'value "Yes"')
+    return df_metadata
+
+
+def subset_metadata_table(df_metadata, metadata_columns, tree_leaf_names):
+    df_metadata = df_metadata.reindex(index=tree_leaf_names)
+    df_metadata = df_metadata.loc[:, metadata_columns]
     return df_metadata
 
 
@@ -185,12 +203,14 @@ def try_fix_collection_date_metadata(df_metadata: pd.DataFrame) -> None:
 def try_fix_host_metadata(df_metadata: pd.DataFrame) -> None:
     if 'host' in df_metadata.columns:
         before_host_types = df_metadata.host.unique().size
+        host_before = set(df_metadata.host.unique())
         fix_host_metadata(df_metadata)
         after_host_types = df_metadata.host.unique().size
+        host_after = set(df_metadata.host.unique())
         logging.info(f'Harmonized some host info for cattle, sheep and pig '
                      f'to use more consistent host type categories. '
                      f'Before: {before_host_types} host types. '
-                     f'After: {after_host_types} host types.')
+                     f'After: {after_host_types} host types. Difference: {host_after ^ host_before}')
 
 
 def collapse_branches(tree: Tree, collapse_support: float) -> None:
@@ -204,6 +224,9 @@ def collapse_branches(tree: Tree, collapse_support: float) -> None:
         collapse_support: Support threshold
     """
     for node in tree.traverse():
-        if not node.is_leaf() and not node.is_root():
-            if node.support < collapse_support:
-                node.delete()
+        if (
+            not node.is_leaf()
+            and not node.is_root()
+            and node.support < collapse_support
+        ):
+            node.delete()
