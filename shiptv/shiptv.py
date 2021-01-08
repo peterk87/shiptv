@@ -123,16 +123,16 @@ def write_html_tree(df_metadata: pd.DataFrame,
                                metadata_json_string=df_metadata.to_json(orient='index')))
 
 
-def parse_leaf_list(leaflist: Path) -> Optional[List[str]]:
-    if leaflist:
-        leaflist_filepath = leaflist
-        leaflist = read_lines(leaflist)
-        logging.info(f'Read {len(leaflist)} leaf names from "{leaflist_filepath}"')
+def parse_leaf_list(leaflist_path: Path) -> Optional[List[str]]:
+    leaflist = None
+    if leaflist_path:
+        leaflist = read_lines(leaflist_path)
+        logging.info(f'Read {len(leaflist)} leaf names from "{leaflist_path}"')
     return leaflist
 
 
-def prune_tree(df_metadata, leaflist, tree):
-    if leaflist is not None and len(leaflist) > 0:
+def prune_tree(df_metadata: pd.DataFrame, leaflist: Optional[List[str]], tree: Tree):
+    if leaflist:
         n_nodes_before_prune = len(tree)
         tree.prune(leaflist)
         logging.info(f'Pruned tree to {len(tree)} leaves from {n_nodes_before_prune} leaves.')

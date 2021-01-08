@@ -876,8 +876,8 @@
       }
 
       /**
-       * Try to find a metadata block at a position. 
-       * 
+       * Try to find a metadata block at a position.
+       *
        * @param  {Object.<string, Object[]>} blocks Map with metadata block coordinate information for each leaf branch.
        * @param  {number} x x-axis coordinate position
        * @param  {number} y y-axis coordinate position
@@ -928,7 +928,7 @@
        * Translate a mouse event to the internal coordinates of a PhyloCanvas Tree object.
        *
        * Adapted from `translateClick()` in phylocanvas/src/utils/canvas.js
-       * 
+       *
        * @param  {MouseEvent} event Mouse event object
        * @param  {PhyloCanvas.Tree} PhyloCanvas Tree object
        * @return {number[]} Adjusted x,y coordinate positions
@@ -940,7 +940,7 @@
 
       /**
        * Get the default tooltip inner HTML for a metadata block.
-       * 
+       *
        * @param  {Object} block Metadata block/cell object
        * @return {string} Inner HTML for the PhyloCanvas tooltip
        */
@@ -1602,7 +1602,7 @@
     cols.unshift('genome');
     var columnDefs = cols.map(function(x) {
       return Object.assign(JSON.parse(JSON.stringify(DEFAULT_GRID_COL_OPTS)), {
-        headerName: _.capitalize(x).replace(/_+/g, " "), 
+        headerName: _.capitalize(x).replace(/_+/g, " "),
         field: x,
       });
     });
@@ -1631,7 +1631,7 @@
         }, {genome: x});
       });
     }
-    
+
     // let the grid know which columns and what data to use
     var gridOptions = {
       columnDefs: columnDefs,
@@ -1737,7 +1737,7 @@
       element.classList.remove('is-invalid');
       element.classList.add('is-valid');
       tree.leaves.forEach(function(x) { x.selected = false; });
-      foundLeaves.forEach(function(x) { 
+      foundLeaves.forEach(function(x) {
         x.selected = true;
         x.highlighted = true;
         setTimeout(function() {
@@ -1747,17 +1747,17 @@
       tree.fitInPanel(foundLeaves);
       tree.draw();
       sel_leaves = foundLeaves.reduce(function(acc, x) {
-        acc[x.id] = 1; 
-        return acc; 
+        acc[x.id] = 1;
+        return acc;
       }, {});
       console.log('sel_leaves', sel_leaves)
       console.log('grid', grid)
       grid.context.beans.gridApi.beanInstance.forEachNode(function(x) {
-        if (sel_leaves.hasOwnProperty(x.data.genome)) { 
+        if (sel_leaves.hasOwnProperty(x.data.genome)) {
           console.log(x);
-          x.selected = true; 
-        } else { 
-          x.selected = false; 
+          x.selected = true;
+        } else {
+          x.selected = false;
         }
       });
       grid.context.beans.gridApi.beanInstance.redrawRows();
@@ -1771,12 +1771,12 @@
         lowSupportColour = '#f00'; // red
       }
       for (let nodeId in tree.branches) {
-        if (tree.branches.hasOwnProperty(nodeId)) { 
-          let node = tree.branches[nodeId]; 
-          if (node.children.length === 0) { 
+        if (tree.branches.hasOwnProperty(nodeId)) {
+          let node = tree.branches[nodeId];
+          if (node.children.length === 0) {
             continue;
           }
-          let bs = parseInt(node.label); 
+          let bs = parseInt(node.label);
           if (bs < supportThreshold) {
             node.colour = lowSupportColour;
           } else {
@@ -1825,8 +1825,8 @@
           }
         };
         return acc2;
-      }, acc); 
-      return acc; 
+      }, acc);
+      return acc;
     }, {});
 
 
@@ -1836,24 +1836,24 @@
       };
       var valueCounts = fieldValueCounts[fieldName];
       var isAllNumbers = Object.keys(valueCounts).reduce(function(acc, x) {
-        return !isNaN(Number(x)) && acc;
+        return !Number.isNaN(Number(x)) && acc;
       }, true);
       var isAllDates = Object.keys(valueCounts).reduce(function(acc, x) {
-        return !isNaN(Date.parse(x)) && acc;
+        return !Number.isNaN(Date.parse(x)) && acc;
       }, true);
       var sorted_keys;
       var map_new_to_old = {};
       if (isAllNumbers) {
-        sorted_keys = Object.keys(valueCounts).map(Number).sort(function (a,b) { return a > b; });
+        sorted_keys = Object.keys(valueCounts).map(Number).sort(function (a,b) { return a - b; });
       } else if (isAllDates) {
         map_new_to_old = Object.keys(valueCounts).reduce(function (acc, d) {
             acc[Date.parse(d)] = d;
             return acc;
         }, {});
-        sorted_keys = Object.keys(map_new_to_old).sort(function (a,b) { return a > b; });
+        sorted_keys = Object.keys(map_new_to_old).sort(function (a,b) { return a - b; });
       } else {
         sorted_keys = Object.keys(valueCounts).sort(function (a, b) {
-          return valueCounts[a] < valueCounts[b];
+          return valueCounts[b] - valueCounts[a];
         });
       }
       var n = sorted_keys.length;
@@ -1878,7 +1878,7 @@
           acc[fieldName][sorted_keys[i]] = colours[i];
         }
       }
-      return acc; 
+      return acc;
     }, {});
 
     tree.on('beforeFirstDraw', function() {
