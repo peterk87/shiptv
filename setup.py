@@ -17,7 +17,8 @@ requirements = [
     'jinja2',
     'pandas',
     'ete3',
-    'biopython'
+    'biopython',
+    'requests'
 ]
 
 setup_requirements = ['pytest-runner', ]

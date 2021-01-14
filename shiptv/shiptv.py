@@ -7,12 +7,27 @@ from typing import List, Dict, Optional
 
 import jinja2
 import pandas as pd
-from pkg_resources import resource_filename
+import requests
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from ete3 import Tree
+from pkg_resources import resource_filename
 
 html_template = resource_filename('shiptv', 'tmpl/phylocanvas.html')
+phylocanvas_metadata_plugin_html = resource_filename('shiptv', 'tmpl/phylocanvas_metadata_plugin.html')
+resources = {
+    'bootstrap_css': 'https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css',
+    'jquery_js': 'https://code.jquery.com/jquery-3.3.1.slim.min.js',
+    'popper_js': 'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js',
+    'bootstrap_js': 'https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js',
+    'phylocanvas_js': 'https://unpkg.com/phylocanvas@2.8.1/dist/phylocanvas.js',
+    'polyfill_js': 'https://unpkg.com/phylocanvas@2.8.1/polyfill.js',
+    'chroma_js': 'https://unpkg.com/chroma-js@2.0.2/chroma.js',
+    'lodash_js': 'https://unpkg.com/lodash@4.17.11/lodash.min.js',
+    'ag_grid_js': 'https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js',
+    'ag_grid_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css',
+    'ag_grid_theme_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-theme-balham.css',
+}
 
 
 def read_lines(filepath: Path) -> List[str]:
@@ -37,7 +52,7 @@ def genbank_metadata(genbank: Path) -> pd.DataFrame:
     df_metadata = pd.DataFrame({gid: genbank_source_metadata(rec)
                                 for gid, rec in id_to_rec.items()}).transpose()
     if 'isolate' in df_metadata and 'strain' in df_metadata:
-        df_metadata['strain'] = df_metadata['isolate']\
+        df_metadata['strain'] = df_metadata['isolate'] \
             .combine_first(df_metadata['strain'])
     return df_metadata
 
@@ -117,10 +132,20 @@ def set_midpoint_root(tree: Tree) -> None:
 def write_html_tree(df_metadata: pd.DataFrame,
                     output_html: Path,
                     tree: Tree) -> None:
-    with open(html_template) as fh, open(output_html, 'w') as fout:
+    with open(html_template) as fh, \
+         open(phylocanvas_metadata_plugin_html) as fh_pmd, \
+         open(output_html, 'w') as fout:
         tmpl = jinja2.Template(fh.read())
+        logging.info(f'Retrieving JS and CSS for HTML tree')
+        scripts_css = {}
+        for k, v in resources.items():
+            logging.info(f'Getting HTML resource "{k}" from "{v}"')
+            scripts_css[k] = requests.get(v).text
+        logging.info(f'Retrieved JS and CSS for HTML tree')
         fout.write(tmpl.render(newick_string=tree.write(),
-                               metadata_json_string=df_metadata.to_json(orient='index')))
+                               metadata_json_string=df_metadata.to_json(orient='index'),
+                               phylocanvas_metadata_plugin=fh_pmd.read(),
+                               **scripts_css))
 
 
 def parse_leaf_list(leaflist_path: Path) -> Optional[List[str]]:
@@ -162,7 +187,8 @@ def get_metadata_fields(genbank_metadata_fields):
     return metadata_columns
 
 
-def add_user_samples_field(df_metadata: pd.DataFrame, metadata_columns: List[str], tree_leaf_names: List[str]) -> pd.DataFrame:
+def add_user_samples_field(df_metadata: pd.DataFrame, metadata_columns: List[str],
+                           tree_leaf_names: List[str]) -> pd.DataFrame:
     set_user_samples = set(tree_leaf_names) - set(df_metadata.index)
     logging.info(f'Found {len(set_user_samples)} user samples. {";".join(set_user_samples)}')
     df_metadata = subset_metadata_table(df_metadata, metadata_columns, tree_leaf_names)
