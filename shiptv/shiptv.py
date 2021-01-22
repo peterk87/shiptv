@@ -28,6 +28,8 @@ resources = {
     'ag_grid_js': 'https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js',
     'ag_grid_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css',
     'ag_grid_theme_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-theme-balham.css',
+    'select2_js': 'https://cdnjs.cloudflare.com/ajax/libs/select2/3.5.4/select2.min.js',
+    'select2_css': 'https://cdnjs.cloudflare.com/ajax/libs/select2/3.5.4/select2.min.css',
 }
 
 
