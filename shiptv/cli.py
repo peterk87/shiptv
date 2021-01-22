@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from Bio import Phylo
 import pandas as pd
 import typer
 from rich.logging import RichHandler
@@ -64,12 +65,13 @@ def main(newick: Path = typer.Option(..., '-n', '--newick', help='Phylogenetic t
                                               tracebacks_show_locals=True)])
 
     tree = parse_tree(newick, outgroup=outgroup, midpoint_root=midpoint_root)
+    leaf_names = [x.name for x in tree.get_terminals()]
     if collapse_support != -1:
         logging.info(f'Collapsing internal branches with support values less '
                      f'than {collapse_support}')
         collapse_branches(tree, collapse_support)
     if output_newick:
-        tree.write(outfile=output_newick)
+        Phylo.write([tree], output_newick, 'newick')
     if ref_genomes_genbank:
         df_metadata = genbank_metadata(ref_genomes_genbank)
         logging.info(f'Parsed metadata from "{ref_genomes_genbank}" with columns: {list(df_metadata.columns)}')
@@ -88,14 +90,15 @@ def main(newick: Path = typer.Option(..., '-n', '--newick', help='Phylogenetic t
         logging.info(f'Metadata table fields: {metadata_fields}')
 
     else:
-        df_metadata = pd.DataFrame(index=tree.get_leaf_names())
+        df_metadata = pd.DataFrame(index=leaf_names)
         logging.info(f'df_metadata index dtype = {df_metadata.index.dtype} '
                      f'| {df_metadata.index.values[0]} is {type(df_metadata.index.values[0])}')
         metadata_fields = []
+
     if highlight_user_samples:
-        df_metadata = add_user_samples_field(df_metadata, metadata_fields, tree.get_leaf_names())
+        df_metadata = add_user_samples_field(df_metadata, metadata_fields, leaf_names)
     else:
-        df_metadata = subset_metadata_table(df_metadata, metadata_fields, tree.get_leaf_names())
+        df_metadata = subset_metadata_table(df_metadata, metadata_fields, leaf_names)
     if leaflist:
         df_metadata = prune_tree(df_metadata, parse_leaf_list(leaflist), tree)
     if user_sample_metadata:

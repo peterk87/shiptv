@@ -16,7 +16,6 @@ requirements = [
     'typer',
     'jinja2',
     'pandas',
-    'ete3',
     'biopython',
     'requests'
 ]

@@ -277,7 +277,7 @@
             </div>
           </div>
           <div id="tree-container" class="col-10">
-            <div id="tree-plot" style="overflow: auto;"></div>
+            <div id="tree-plot" style="overflow: none;"></div>
           </div>
         </div>
       </div>
@@ -363,10 +363,7 @@
         headerAngle: 0,
         blockLength: 20,
       },
-      history: {
-        parent: $treePlot,
-        zIndex: 1,
-      },
+      history: false,
       baseNodeSize: 0,
     });
 

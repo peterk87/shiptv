@@ -9,8 +9,9 @@ import jinja2
 import pandas as pd
 import requests
 from Bio import SeqIO
+from Bio import Phylo
+from Bio.Phylo.Newick import Tree
 from Bio.SeqRecord import SeqRecord
-from ete3 import Tree
 from pkg_resources import resource_filename
 
 html_template = resource_filename('shiptv', 'tmpl/phylocanvas.html')
@@ -111,22 +112,17 @@ def add_user_metadata(df: pd.DataFrame, user_sample_metadata: Path) -> None:
 
 def parse_tree(newick: Path, outgroup=None, midpoint_root=False, ladderize=False) -> Tree:
     # Read phylogenetic tree newick file using ete3
-    tree = Tree(newick=str(newick.absolute()))
+    tree: Tree = Phylo.read(newick, 'newick')
     # setting user specified outgroup takes precedence over setting midpoint node as outgroup/tree root
     if outgroup:
-        tree.set_outgroup(outgroup)
+
+        tree.root_with_outgroup(dict(name=outgroup))
     elif midpoint_root:
-        set_midpoint_root(tree)
+        tree.root_at_midpoint()
     # ladderize the tree for subjectively cleaner viz
     if ladderize:
-        tree.ladderize(direction=1)
+        tree.ladderize()
     return tree
-
-
-def set_midpoint_root(tree: Tree) -> None:
-    """Calculate and set the midpoint node as the outgroup/tree root"""
-    midpoint_node = tree.get_midpoint_outgroup()
-    tree.set_outgroup(midpoint_node)
 
 
 def write_html_tree(df_metadata: pd.DataFrame,
@@ -142,7 +138,10 @@ def write_html_tree(df_metadata: pd.DataFrame,
             logging.info(f'Getting HTML resource "{k}" from "{v}"')
             scripts_css[k] = requests.get(v).text
         logging.info(f'Retrieved JS and CSS for HTML tree')
-        fout.write(tmpl.render(newick_string=tree.write(),
+        from io import StringIO
+        sio = StringIO()
+        Phylo.write(tree, sio, 'newick')
+        fout.write(tmpl.render(newick_string=sio.getvalue().strip(),
                                metadata_json_string=df_metadata.to_json(orient='index'),
                                phylocanvas_metadata_plugin=fh_pmd.read(),
                                **scripts_css))
@@ -158,9 +157,10 @@ def parse_leaf_list(leaflist_path: Path) -> Optional[List[str]]:
 
 def prune_tree(df_metadata: pd.DataFrame, leaflist: Optional[List[str]], tree: Tree):
     if leaflist:
-        n_nodes_before_prune = len(tree)
-        tree.prune(leaflist)
-        logging.info(f'Pruned tree to {len(tree)} leaves from {n_nodes_before_prune} leaves.')
+        n_nodes_before_prune = len(tree.get_terminals())
+        for x in leaflist:
+            tree.prune(dict(name=x))
+        logging.info(f'Pruned tree to {len(tree.get_terminals())} leaves from {n_nodes_before_prune} leaves.')
         df_metadata = df_metadata.loc[leaflist, :]
     return df_metadata
 
@@ -246,10 +246,10 @@ def collapse_branches(tree: Tree, collapse_support: float) -> None:
         This function modifies the supplied `tree` object.
 
     Args:
-        tree: ete3 Tree object
+        tree: Bio.Phylo Tree object
         collapse_support: Support threshold
     """
-    for node in tree.traverse():
+    for node in tree.get_nonterminals():
         if (
             not node.is_leaf()
             and not node.is_root()
