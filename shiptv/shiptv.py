@@ -10,7 +10,7 @@ import pandas as pd
 import requests
 from Bio import SeqIO
 from Bio import Phylo
-from Bio.Phylo.Newick import Tree
+from Bio.Phylo.Newick import Tree, Clade
 from Bio.SeqRecord import SeqRecord
 from pkg_resources import resource_filename
 
@@ -249,10 +249,7 @@ def collapse_branches(tree: Tree, collapse_support: float) -> None:
         tree: Bio.Phylo Tree object
         collapse_support: Support threshold
     """
+    node: Clade
     for node in tree.get_nonterminals():
-        if (
-            not node.is_leaf()
-            and not node.is_root()
-            and node.support < collapse_support
-        ):
-            node.delete()
+        if node.confidence and node.confidence < collapse_support:
+            tree.collapse(node)

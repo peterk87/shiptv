@@ -6,7 +6,8 @@
 from os.path import abspath, exists
 
 import pandas as pd
-from ete3 import Tree
+from Bio import Phylo
+from Bio.Phylo.Newick import Tree
 from pandas.testing import assert_frame_equal, assert_series_equal
 from typer.testing import CliRunner
 
@@ -63,32 +64,39 @@ def test_command_line_interface():
 
 def test_collapse_branches():
     before_tree_ascii = """
-   /-MK088171.1
-  |
---|--MK071699.1
-  |
-  |   /-MH845413.2
-   \\-|
-     |   /-MH784405.1
-      \\-|
-         \\-MH784404.1
+  _________________________________________________________________ MK088171.1
+ |
+_|_______________ MK071699.1
+ |
+ |      _______________________________________________ MH845413.2
+ |_____|
+       |                  _____ MH784405.1
+       |_________________|
+                         |______ MH784404.1
     """.strip()
     after_tree_ascii = """
-   /-MK088171.1
-  |
-  |--MK071699.1
---|
-  |--MH845413.2
-  |
-  |   /-MH784405.1
-   \\-|
-      \\-MH784404.1
+  _________________________________________________________________ MK088171.1
+ |
+ |_______________ MK071699.1
+_|
+ |_____________________________________________________ MH845413.2
+ |
+ |                        _____ MH784405.1
+ |_______________________|
+                         |______ MH784404.1
     """.strip()
 
-    tree = Tree(newick=input_newick)
-    assert tree.get_ascii().strip() == before_tree_ascii
+    tree: Tree = Phylo.read(input_newick, 'newick')
+    from io import StringIO
+    sio = StringIO()
+    Phylo.draw_ascii(tree, sio)
+    pre_collapse_tree = sio.getvalue().strip()
+    assert pre_collapse_tree == before_tree_ascii
     collapse_branches(tree, 95)
-    assert tree.get_ascii().strip() == after_tree_ascii
+    sio = StringIO()
+    Phylo.draw_ascii(tree, sio)
+    post_collapse_tree = sio.getvalue().strip()
+    assert post_collapse_tree == after_tree_ascii
 
 
 def test_fix_collection_date():
