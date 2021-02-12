@@ -3,7 +3,8 @@
 
 """Tests for `shiptv` package."""
 
-from os.path import abspath, exists
+from os.path import exists
+from pathlib import Path
 
 import pandas as pd
 from Bio import Phylo
@@ -16,9 +17,10 @@ from shiptv.shiptv import collapse_branches, fix_collection_date
 
 runner = CliRunner()
 
-input_ref_genbank = abspath('tests/data/fmdv-5.gb')
-input_newick = abspath('tests/data/fmdv-5.newick')
-expected_table = abspath('tests/data/expected_table.tsv')
+dirpath = Path(__file__).parent
+input_ref_genbank = dirpath / 'data/fmdv-5.gb'
+input_newick = dirpath / 'data/fmdv-5.newick'
+expected_table = dirpath / 'data/expected_table.tsv'
 
 
 def test_command_line_interface():
