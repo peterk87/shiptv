@@ -160,8 +160,10 @@ def parse_leaf_list(leaflist_path: Path) -> Optional[List[str]]:
 def prune_tree(df_metadata: pd.DataFrame, leaflist: Optional[List[str]], tree: Tree):
     if leaflist:
         n_nodes_before_prune = len(tree.get_terminals())
-        for x in leaflist:
-            tree.prune(dict(name=x))
+        leaves_to_keep = set(leaflist)
+        for node in tree.get_terminals():
+            if node.name not in leaves_to_keep:
+                tree.prune(node)
         logging.info(f'Pruned tree to {len(tree.get_terminals())} leaves from {n_nodes_before_prune} leaves.')
         df_metadata = df_metadata.loc[leaflist, :]
     return df_metadata
