@@ -40,16 +40,21 @@ def test_command_line_interface():
                                           '-N', out_newick,
                                           '-o', out_html,
                                           '-m', out_table])
-        print(test_result.output)
-        assert test_result.exit_code == 0
-        assert exists(out_html)
-        assert exists(out_table)
-        assert exists(out_newick)
-        assert open(input_newick).read() != open(out_newick).read()
-        df_out = pd.read_table(out_table)
-        df_exp = pd.read_table(expected_table)
-        print(f'Col diff: {set(df_out.columns) ^ set(df_exp.columns)}')
-        assert_frame_equal(df_exp, df_out)
+        if test_result.exit_code != 0:
+            print(test_result, flush=True)
+            print(test_result.exc_info, flush=True)
+            print(test_result.stdout, flush=True)
+            print(test_result.stderr, flush=True)
+        else:
+            assert test_result.exit_code == 0
+            assert exists(out_html)
+            assert exists(out_table)
+            assert exists(out_newick)
+            assert open(input_newick).read() != open(out_newick).read()
+            df_out = pd.read_table(out_table)
+            df_exp = pd.read_table(expected_table)
+            print(f'Col diff: {set(df_out.columns) ^ set(df_exp.columns)}')
+            assert_frame_equal(df_exp, df_out)
 
     with runner.isolated_filesystem():
         out_html = 'test.html'
