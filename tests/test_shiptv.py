@@ -25,6 +25,10 @@ expected_table = dirpath / 'data/expected_table.tsv'
 
 def test_command_line_interface():
     """Test the CLI."""
+    assert input_ref_genbank.exists()
+    assert input_newick.exists()
+    assert expected_table.exists()
+
     result = runner.invoke(app)
     assert result.exit_code != 0
     assert 'Error: Missing option' in result.output
@@ -35,8 +39,8 @@ def test_command_line_interface():
         out_html = 'test.html'
         out_table = 'test.tsv'
         out_newick = 'test.newick'
-        test_result = runner.invoke(app, ['-r', input_ref_genbank,
-                                          '-n', input_newick,
+        test_result = runner.invoke(app, ['-r', str(input_ref_genbank.absolute()),
+                                          '-n', str(input_newick.absolute()),
                                           '-N', out_newick,
                                           '-o', out_html,
                                           '-m', out_table])
@@ -44,7 +48,7 @@ def test_command_line_interface():
             print(test_result, flush=True)
             print(test_result.exc_info, flush=True)
             print(test_result.stdout, flush=True)
-            print(test_result.stderr, flush=True)
+            print(test_result.exception, flush=True)
         else:
             assert test_result.exit_code == 0
             assert exists(out_html)
