@@ -1,6 +1,6 @@
-	strain	serotype	note	country	region	collection_date	collection_year	host	isolation_source	user_sample
-MK088171.1	BAN/CH/Sa-304/2016	A		Bangladesh	Sadar, Chittagong	2016-09-27	2016	cattle	tongue epithelium	
-MK071699.1	BAN/BO/Na-161/2013	O	genotype: Ind2001BD2 sublineage	Bangladesh	Bogra	2013-07-08	2013	cattle	tongue epithelium	
-MH845413.2	O/VN1/2014	O	genotype: O/SEA/Mya-98	Viet Nam	Lao Cai	2014-01-01	2014	swine		
-MH784405.1	PAK/14/2017	O		Pakistan	Sahiwal, Punjab	2017-03-11	2017	cattle		
-MH784404.1	PAK/4/2017	O		Pakistan	Jhang, Punjab	2017-02-02	2017	water buffalo		
+	strain	serotype	note	country	region	collection_date	collection_year	host	isolation_source
+MK088171.1	BAN/CH/Sa-304/2016	A		Bangladesh	Sadar, Chittagong	2016-09-27	2016	cattle	tongue epithelium
+MK071699.1	BAN/BO/Na-161/2013	O	genotype: Ind2001BD2 sublineage	Bangladesh	Bogra	2013-07-08	2013	cattle	tongue epithelium
+MH845413.2	O/VN1/2014	O	genotype: O/SEA/Mya-98	Viet Nam	Lao Cai	2014-01-01	2014	swine	
+MH784405.1	PAK/14/2017	O		Pakistan	Sahiwal, Punjab	2017-03-11	2017	cattle	
+MH784404.1	PAK/4/2017	O		Pakistan	Jhang, Punjab	2017-02-02	2017	water buffalo	
