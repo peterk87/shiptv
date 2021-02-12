@@ -134,12 +134,12 @@ def write_html_tree(df_metadata: pd.DataFrame,
          open(phylocanvas_metadata_plugin_html) as fh_pmd, \
          open(output_html, 'w') as fout:
         tmpl = jinja2.Template(fh.read())
-        logging.info(f'Retrieving JS and CSS for HTML tree')
+        logging.info('Retrieving JS and CSS for HTML tree')
         scripts_css = {}
         for k, v in resources.items():
             logging.info(f'Getting HTML resource "{k}" from "{v}"')
             scripts_css[k] = requests.get(v).text
-        logging.info(f'Retrieved JS and CSS for HTML tree')
+        logging.info('Retrieved JS and CSS for HTML tree')
         from io import StringIO
         sio = StringIO()
         Phylo.write(tree, sio, 'newick')
@@ -213,21 +213,21 @@ def subset_metadata_table(df_metadata, metadata_columns, tree_leaf_names):
 def try_fix_serotype_metadata(df_metadata: pd.DataFrame) -> None:
     if 'serotype' in df_metadata.columns:
         df_metadata.serotype = df_metadata.serotype.str.replace(r'\s', '')
-        logging.info(f'Stripped internal whitespace from serotype metadata field')
+        logging.info('Stripped internal whitespace from serotype metadata field')
 
 
 def try_fix_country_metadata(df_metadata: pd.DataFrame) -> None:
     if 'country' in df_metadata.columns:
         fix_country_region(df_metadata)
-        logging.info(f'Split country metadata field into country and region on ":"')
+        logging.info('Split country metadata field into country and region on ":"')
 
 
 def try_fix_collection_date_metadata(df_metadata: pd.DataFrame) -> None:
     if 'collection_date' in df_metadata.columns:
         fix_collection_date(df_metadata)
-        logging.info(f'Normalized collection_date metadata field to ISO date '
-                     f'format and extracted year integer into '
-                     f'collection_year field')
+        logging.info('Normalized collection_date metadata field to ISO date '
+                     'format and extracted year integer into '
+                     'collection_year field')
 
 
 def try_fix_host_metadata(df_metadata: pd.DataFrame) -> None:

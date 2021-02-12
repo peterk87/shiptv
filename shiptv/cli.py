@@ -26,7 +26,7 @@ def main(newick: Path = typer.Option(..., '-n', '--newick', help='Phylogenetic t
          ref_genomes_genbank: Optional[Path] = typer.Option(None, '-r', '--ref-genomes-genbank',
                                                             help='Reference genome sequences Genbank file'),
          output_metadata_table: Optional[Path] = typer.Option(None, '-m', '--output-metadata-table',
-                                                    help='Output metadata table path'),
+                                                              help='Output metadata table path'),
          leaflist: Path = typer.Option(None, help='Optional leaf names to select from phylogenetic tree '
                                                   'for pruned tree visualization. One leaf name per line.'),
          genbank_metadata_fields: Path = typer.Option(None, help='Optional fields to extract from Genbank source '
