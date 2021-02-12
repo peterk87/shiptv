@@ -25,10 +25,11 @@ expected_table = dirpath / 'data/expected_table.tsv'
 
 def test_command_line_interface():
     """Test the CLI."""
+    # check that test input files exist
     assert input_ref_genbank.exists()
     assert input_newick.exists()
     assert expected_table.exists()
-
+    # CLI tests start here
     result = runner.invoke(app)
     assert result.exit_code != 0
     assert 'Error: Missing option' in result.output
@@ -44,27 +45,21 @@ def test_command_line_interface():
                                           '-N', out_newick,
                                           '-o', out_html,
                                           '-m', out_table])
-        if test_result.exit_code != 0:
-            print(test_result, flush=True)
-            print(test_result.exc_info, flush=True)
-            print(test_result.stdout, flush=True)
-            print(test_result.exception, flush=True)
-        else:
-            assert test_result.exit_code == 0
-            assert exists(out_html)
-            assert exists(out_table)
-            assert exists(out_newick)
-            assert open(input_newick).read() != open(out_newick).read()
-            df_out = pd.read_table(out_table)
-            df_exp = pd.read_table(expected_table)
-            print(f'Col diff: {set(df_out.columns) ^ set(df_exp.columns)}')
-            assert_frame_equal(df_exp, df_out)
+        assert test_result.exit_code == 0
+        assert exists(out_html)
+        assert exists(out_table)
+        assert exists(out_newick)
+        assert open(input_newick).read() != open(out_newick).read()
+        df_out = pd.read_table(out_table)
+        df_exp = pd.read_table(expected_table)
+        print(f'Col diff: {set(df_out.columns) ^ set(df_exp.columns)}')
+        assert_frame_equal(df_exp, df_out)
 
     with runner.isolated_filesystem():
         out_html = 'test.html'
         out_table = 'test.tsv'
-        test_result = runner.invoke(app, ['-r', input_ref_genbank,
-                                          '-n', input_newick,
+        test_result = runner.invoke(app, ['-r', str(input_ref_genbank.absolute()),
+                                          '-n', str(input_newick.absolute()),
                                           '-o', out_html,
                                           '-m', out_table,
                                           '-C', 95])
