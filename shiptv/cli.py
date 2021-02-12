@@ -1,76 +1,51 @@
 # -*- coding: utf-8 -*-
 
 """Console script for shiptv."""
-import sys
 import logging
+from pathlib import Path
+from typing import Optional
 
-import click
+from Bio import Phylo
 import pandas as pd
+import typer
+from rich.logging import RichHandler
 
 from shiptv.shiptv import genbank_metadata, add_user_metadata, parse_tree, \
     write_html_tree, parse_leaf_list, prune_tree, reorder_metadata_fields, \
-    get_metadata_fields, highlight_user_samples, try_fix_serotype_metadata, \
+    get_metadata_fields, add_user_samples_field, try_fix_serotype_metadata, \
     try_fix_country_metadata, \
-    try_fix_collection_date_metadata, try_fix_host_metadata, collapse_branches
+    try_fix_collection_date_metadata, try_fix_host_metadata, collapse_branches, subset_metadata_table
+
+app = typer.Typer()
 
 
-@click.command()
-@click.option('-r', '--ref-genomes-genbank',
-              required=False,
-              type=click.Path(exists=True, dir_okay=False),
-              help='Reference genome sequences Genbank file')
-@click.option('-n', '--newick',
-              required=True, type=click.Path(exists=True, dir_okay=False),
-              help='Phylogenetic tree Newick file')
-@click.option('-N', '--output-newick',
-              type=click.Path(),
-              help='Output Newick file')
-@click.option('-o', '--output-html', type=click.Path(),
-              required=True, help='Output HTML tree path')
-@click.option('-m', '--output-metadata-table',
-              type=click.Path(),
-              required=True, help='Output metadata table path')
-@click.option('--leaflist',
-              required=False,
-              type=click.Path(),
-              default=None,
-              help='Optional leaf names to select from phylogenetic tree for '
-                   'pruned tree visualization. One leaf name per line.')
-@click.option('--genbank-metadata-fields',
-              required=False,
-              type=click.Path(),
-              default=None,
-              help='Optional fields to extract from Genbank source metadata. '
-                   'One field per line.')
-@click.option('--user-sample-metadata',
-              required=False,
-              type=click.Path(),
-              default=None,
-              help='Optional tab-delimited metadata for user samples to join '
-                   'with metadata derived from reference genome sequences '
-                   'Genbank file. Sample IDs must be in the first column.')
-@click.option('--metadata-fields-in-order',
-              required=False,
-              type=click.Path(),
-              default=None,
-              help='Optional list of fields in order to output in metadata '
-                   'table and HTML tree visualization. One field per line.')
-@click.option('--dont-fix-metadata', is_flag=True,
-              help='Do not automatically fix metadata (only on Genbank file metadata)')
-@click.option('-C', '--collapse-support', default=-1, type=float,
-              help='Collapse internal branches below specified bootstrap '
-                   'support value (default -1 for no collapsing)')
-def main(ref_genomes_genbank,
-         newick,
-         output_newick,
-         output_html,
-         output_metadata_table,
-         leaflist,
-         genbank_metadata_fields,
-         user_sample_metadata,
-         metadata_fields_in_order,
-         dont_fix_metadata,
-         collapse_support):
+@app.command()
+def main(newick: Path = typer.Option(..., '-n', '--newick', help='Phylogenetic tree Newick file'),
+         output_html: Path = typer.Option(..., '-o', '--output-html', help='Output HTML tree path'),
+         output_newick: Optional[Path] = typer.Option(None, '-N', '--output-newick', help='Output Newick file'),
+         ref_genomes_genbank: Optional[Path] = typer.Option(None, '-r', '--ref-genomes-genbank',
+                                                            help='Reference genome sequences Genbank file'),
+         output_metadata_table: Optional[Path] = typer.Option(None, '-m', '--output-metadata-table',
+                                                              help='Output metadata table path'),
+         leaflist: Path = typer.Option(None, help='Optional leaf names to select from phylogenetic tree '
+                                                  'for pruned tree visualization. One leaf name per line.'),
+         genbank_metadata_fields: Path = typer.Option(None, help='Optional fields to extract from Genbank source '
+                                                                 'metadata. One field per line.'),
+         user_sample_metadata: Path = typer.Option(None, '-M', '--metadata',
+                                                   help='Optional tab-delimited metadata for user samples to join with'
+                                                        ' metadata derived from reference genome sequences Genbank '
+                                                        'file. Sample IDs must be in the first column.'),
+         metadata_fields_in_order: Path = typer.Option(None,
+                                                       help='Optional list of fields in order to output in metadata '
+                                                            'table and HTML tree visualization. One field per line.'),
+         fix_metadata: bool = typer.Option(True, help='Try to automatically fix metadata from reference Genbank file.'),
+         collapse_support: float = typer.Option(-1.0, '-C', '--collapse-support',
+                                                help='Collapse internal branches below specified bootstrap '
+                                                     'support value (default -1 for no collapsing)'),
+         highlight_user_samples: bool = typer.Option(False, help='Highlight user samples with metadata field in tree.'),
+         outgroup: str = typer.Option(None, help='Tree outgroup taxa'),
+         midpoint_root: bool = typer.Option(False, help='Set midpoint root'),
+         verbose: bool = typer.Option(False, help='Verbose logs')):
     """Create HTML tree visualization with metadata.
 
     The metadata for reference genomes can be extracted from the specified
@@ -80,51 +55,64 @@ def main(ref_genomes_genbank,
     file are assumed to be user samples and are flagged as such in the
     metadata table as "user_sample"="Yes".
     """
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s '
-                               '[in %(filename)s:%(lineno)d]',
-                        level=logging.INFO)
-    tree = parse_tree(newick)
+    from rich.traceback import install
+    install(show_locals=True)
+
+    logging.basicConfig(format='%(message)s',
+                        datefmt='[%Y-%m-%d %X]',
+                        level=logging.INFO if not verbose else logging.DEBUG,
+                        handlers=[RichHandler(rich_tracebacks=True,
+                                              tracebacks_show_locals=True)])
+
+    tree = parse_tree(newick, outgroup=outgroup, midpoint_root=midpoint_root)
+    leaf_names = [x.name for x in tree.get_terminals()]
     if collapse_support != -1:
         logging.info(f'Collapsing internal branches with support values less '
                      f'than {collapse_support}')
         collapse_branches(tree, collapse_support)
     if output_newick:
-        tree.write(outfile=output_newick)
+        Phylo.write([tree], output_newick, 'newick')
     if ref_genomes_genbank:
         df_metadata = genbank_metadata(ref_genomes_genbank)
-        logging.info(f'Parsed metadata from "{ref_genomes_genbank}" with columns '
-                     f'"{";".join(df_metadata.columns)}')
-        if dont_fix_metadata:
-            logging.warning('Not fixing any genome metadata.')
-        else:
+        logging.info(f'Parsed metadata from "{ref_genomes_genbank}" with columns: {list(df_metadata.columns)}')
+        if fix_metadata:
             try_fix_serotype_metadata(df_metadata)
             try_fix_country_metadata(df_metadata)
             try_fix_collection_date_metadata(df_metadata)
             try_fix_host_metadata(df_metadata)
+        else:
+            logging.warning('Not fixing any genome metadata.')
+
         metadata_fields = get_metadata_fields(genbank_metadata_fields)
         # only use columns present in the reference genome metadata
         metadata_fields = [x for x in metadata_fields if
                            x in list(df_metadata.columns)]
-        logging.info(f'Metadata table fields: {";".join(metadata_fields)}')
-        
+        logging.info(f'Metadata table fields: {metadata_fields}')
+
     else:
-        df_metadata = pd.DataFrame(index=tree.get_leaf_names())
+        df_metadata = pd.DataFrame(index=leaf_names)
+        logging.info(f'df_metadata index dtype = {df_metadata.index.dtype} '
+                     f'| {df_metadata.index.values[0]} is {type(df_metadata.index.values[0])}')
         metadata_fields = []
-    df_metadata = highlight_user_samples(df_metadata, metadata_fields,
-                                         tree.get_leaf_names())
-    
-    df_metadata = prune_tree(df_metadata, parse_leaf_list(leaflist), tree)
+
+    if highlight_user_samples:
+        df_metadata = add_user_samples_field(df_metadata, metadata_fields, leaf_names)
+    else:
+        df_metadata = subset_metadata_table(df_metadata, metadata_fields, leaf_names)
+    if leaflist:
+        df_metadata = prune_tree(df_metadata, parse_leaf_list(leaflist), tree)
     if user_sample_metadata:
         add_user_metadata(df_metadata, user_sample_metadata)
     df_metadata = reorder_metadata_fields(df_metadata, metadata_fields_in_order)
-    df_metadata.to_csv(output_metadata_table, sep='\t')
-    logging.info(f'Wrote tab-delimited genome metadata table with '
-                 f'{df_metadata.shape[0]} rows and '
-                 f'{df_metadata.shape[1]} columns to '
-                 f'"{output_metadata_table}"')
+    if output_metadata_table:
+        df_metadata.to_csv(output_metadata_table, sep='\t')
+        logging.info(f'Wrote tab-delimited genome metadata table with '
+                     f'{df_metadata.shape[0]} rows and '
+                     f'{df_metadata.shape[1]} columns to '
+                     f'"{output_metadata_table}"')
     write_html_tree(df_metadata, output_html, tree)
     logging.info(f'Wrote HTML tree to "{output_html}"')
 
 
 if __name__ == "__main__":
-    sys.exit(main())  # pragma: no cover
+    app()  # pragma: no cover
