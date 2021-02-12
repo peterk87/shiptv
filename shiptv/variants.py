@@ -30,9 +30,9 @@ def parse_aa(gene: str,
              nt_pos: int,
              aa_pos: int,
              snpeff_aa: str) -> str:
-    if snpeff_aa == '.':
-        return f'{ref}{nt_pos}{alt}'
     m = re.match(r'p\.([a-zA-Z]+)(\d+)([a-zA-Z]+)', snpeff_aa)
+    if snpeff_aa == '.' or m is None:
+        return f'{ref}{nt_pos}{alt}'
     ref_aa, aa_pos_str, alt_aa = m.groups()
     ref_aa = get_aa(ref_aa)
     alt_aa = get_aa(alt_aa)

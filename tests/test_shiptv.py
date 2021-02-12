@@ -38,6 +38,7 @@ def test_command_line_interface():
                                           '-N', out_newick,
                                           '-o', out_html,
                                           '-m', out_table])
+        print(test_result.output)
         assert test_result.exit_code == 0
         assert exists(out_html)
         assert exists(out_table)
