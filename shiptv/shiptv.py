@@ -24,7 +24,7 @@ resources = {
     'phylocanvas_js': 'https://unpkg.com/phylocanvas@2.8.1/dist/phylocanvas.js',
     'polyfill_js': 'https://unpkg.com/phylocanvas@2.8.1/polyfill.js',
     'chroma_js': 'https://unpkg.com/chroma-js@2.0.2/chroma.js',
-    'lodash_js': 'https://unpkg.com/lodash@4.17.11/lodash.min.js',
+    'lodash_js': 'https://unpkg.com/lodash@4.17.15/lodash.min.js',
     'ag_grid_js': 'https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js',
     'ag_grid_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css',
     'ag_grid_theme_css': 'https://unpkg.com/ag-grid-community/dist/styles/ag-theme-balham.css',

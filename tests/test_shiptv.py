@@ -44,7 +44,7 @@ def test_command_line_interface():
                                           '-n', str(input_newick.absolute()),
                                           '-N', out_newick,
                                           '-o', out_html,
-                                          '-m', out_table])
+                                          '-M', out_table])
         assert test_result.exit_code == 0
         assert exists(out_html)
         assert exists(out_table)
@@ -61,7 +61,7 @@ def test_command_line_interface():
         test_result = runner.invoke(app, ['-r', str(input_ref_genbank.absolute()),
                                           '-n', str(input_newick.absolute()),
                                           '-o', out_html,
-                                          '-m', out_table,
+                                          '-M', out_table,
                                           '-C', 95])
         assert test_result.exit_code == 0
         assert exists(out_html)
