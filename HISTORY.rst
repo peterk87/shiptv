@@ -2,6 +2,18 @@
 History
 =======
 
+0.4.1 (2021-05-13)
+------------------
+
+* ensure tree rendered even if ``genomeMetadata`` object is empty in ``phylocanvas.html``
+* add ``--version`` option to print shiptv version and exit
+* add epilog to help with version info
+* add example usage to help
+* change ``--metadata`` short opt to ``-m`` from ``-M``
+* change ``--output-metadata-table`` short opt from ``-m`` to ``-M``
+* update lodash JS library to version 4.17.15
+
+
 0.4.0 (2021-02-12)
 ------------------
 
