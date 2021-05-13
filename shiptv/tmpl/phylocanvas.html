@@ -165,71 +165,19 @@
           object-fit: contain;
       }
   </style>
-  <style>{
-  {
-      bootstrap_css
-  }
-  }</style>
-  <script>{
-    {
-      jquery_js
-    }
-  }</script>
-  <script>{
-    {
-      popper_js
-    }
-  }</script>
-  <script>{
-    {
-      bootstrap_js
-    }
-  }</script>
-  <script>{
-    {
-      phylocanvas_js
-    }
-  }</script>
-  <script>{
-    {
-      polyfill_js
-    }
-  }</script>
-  <script>{
-    {
-      chroma_js
-    }
-  }</script>
-  <script>{
-    {
-      lodash_js
-    }
-  }</script>
-  <script>{
-    {
-      ag_grid_js
-    }
-  }</script>
-  <style>{
-  {
-      ag_grid_css
-  }
-  }</style>
-  <style>{
-  {
-      ag_grid_theme_css
-  }
-  }</style>
-  <style>{
-  {
-      select2_css
-  }
-  }</style>
-  <script>{
-    {
-      select2_js
-    }
-  }</script>
+  <style>{{ bootstrap_css }}</style>
+  <script>{{ jquery_js }}</script>
+  <script>{{ popper_js }}</script>
+  <script>{{ bootstrap_js }}</script>
+  <script>{{ phylocanvas_js }}</script>
+  <script>{{ polyfill_js }}</script>
+  <script>{{ chroma_js }}</script>
+  <script>{{ lodash_js }}</script>
+  <script>{{ ag_grid_js }}</script>
+  <style>{{ ag_grid_css }}</style>
+  <style>{{ ag_grid_theme_css }}</style>
+  <style>{{ select2_css }}</style>
+  <script>{{ select2_js }}</script>
 </head>
 <body>
 <nav id="nav">
@@ -354,12 +302,7 @@
   var newick_string = "{{ newick_string }}";
 </script>
 <script type="text/javascript">
-  var genomeMetadata = {
-  {
-    metadata_json_string
-  }
-  }
-  ;
+  var genomeMetadata = {{ metadata_json_string }};
 </script>
 {{ phylocanvas_metadata_plugin }}
 <script type="application/javascript">
